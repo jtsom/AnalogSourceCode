@@ -1,0 +1,2843 @@
+*****************************
+*         BACTERION!        *
+*     THE PLAGUE OF 2369    *
+*             BY            *
+*        KYLE PEACOCK       *
+*            WITH           *
+*         TOM HUDSON        *
+*                           *
+* ANALOG COMPUTING MAGAZINE *
+*    ALL RIGHTS RESERVED    *
+*****************************
+
+* ATARI MEMORY USAGE
+
+CASINI  EQU $0002 ;RESTART VECTOR
+DOSVEC  EQU $000A ;RESTART VECTOR
+DOSINI  EQU $000C ;RESTART VECTOR
+SDMCTL  EQU $022F ;DMA ENABLE SHADOW
+PMBASE  EQU $D407 ;PM BASE REG.
+GRACTL  EQU $D01D ;GRAPHICS CONTROL
+GPRIOR  EQU $026F ;PRIORITY CONTROL
+AUDC1   EQU $D201 ;AUDIO CHANNELS
+AUDC2   EQU $D203
+AUDC3   EQU $D205
+AUDC4   EQU $D207
+AUDF1   EQU $D200 ;AUDIO FREQUENCIES
+AUDF2   EQU $D202
+AUDF3   EQU $D204
+AUDF4   EQU $D206
+AUDCTL  EQU $D208 ;AUDIO CONTROL
+HITCLR  EQU $D01E ;CLEAR COLLISIONS
+WSYNC   EQU $D40A ;WAIT FOR HOR SYNC.
+RANDOM  EQU $D20A ;RANDOM #s
+PCOLR0  EQU $02C0 ;COLOR OF PLR/MIS
+COLPF0  EQU $D016 ;PLAYFIELD COLOR #0
+COLOR0  EQU $02C4 ;COLOR REGISTERS
+COLOR4  EQU $02C8 ;BACKGROUND COLOR
+NMIEN   EQU $D40E ;NMI INTER. ENABLE
+CH      EQU $02FC ;LAST KEY PRESSED
+SKSTAT  EQU $D20F ;KEYBOARD STATUS
+RTCLOK  EQU $12   ;INTERNAL CLOCK
+VDSLST  EQU $0200 ;DLI VECTOR
+SDLSTL  EQU $0230 ;DLIST VECTOR
+HPOSP0  EQU $D000 ;HOR. POS. PLR 0
+HPOSP1  EQU $D001 ;HOR. POS. PLR 1
+HPOSP2  EQU $D002 ;HOR. POS. PLR 2
+HPOSP3  EQU $D003 ;HOR. POS. PLR 3
+HPOSM0  EQU $D004 ;HOR. POS. MISS 0
+HPOSM1  EQU $D005 ;HOR. POS. MISS 1
+HPOSM2  EQU $D006 ;HOR. POS. MISS 2
+HPOSM3  EQU $D007 ;HOR. POS. MISS 3
+ATRACT  EQU $4D   ;ATTRACT MODE FLAG
+CONSOL  EQU $D01F ;CONSOLE BUTTONS
+STICK0  EQU $0278 ;JOYSTICK PORT 0
+P0PL    EQU $D00C ;PLR/PLR COLLISIONS
+M0PL    EQU $D008 ;MIS/PLR COLLISIONS
+P0PF    EQU $D004 ;PLR/PLF COLLISIONS
+TRIG0   EQU $D010 ;JOYSTICK BUTTON 0
+
+* ATARI HARDWARE REGISTERS
+
+SETVBV  EQU $E45C ;SET SYS. TIMERS
+SYSVBV  EQU $E45F ;1st STAGE VBLANK
+XITVBV  EQU $E462 ;X-IT VBLANK
+SIOINV  EQU $E465 ;SIO INIT
+
+* PLAYER/MISSILE DATA AREA
+
+PLAYBS  EQU     $0000
+MISS    EQU     PLAYBS+0768
+PLAY0   EQU     PLAYBS+1024
+PLAY1   EQU     PLAYBS+1280
+PLAY2   EQU     PLAYBS+1536
+PLAY3   EQU     PLAYBS+1792
+
+* DISPLAY DATA AREA
+
+DLIST   EQU     $1F00
+DISP    EQU     $2010
+DISP2   EQU     $3000
+
+* ZERO PAGE VARIABLES
+
+        ORG     $80
+LO      DS 1
+HI      DS 1
+BALO    DS 1
+BAHI    DS 1
+DRWLO   DS 1
+DRWHI   DS 1
+PLLO    DS 1
+PLHI    DS 1
+
+*       VARIABLES
+
+* PRIMARY USE IN 'PLOTTER' ROUTINE.
+
+PLOTX   DS 1 ;PLOT X-COORD.
+PLOTY   DS 1 ;PLOT Y-COORD.
+COLOR   DS 1 ;POINT COLOR.
+DRAWX   DS 1 ;DRAWTO X-COORD.
+DRAWY   DS 1 ;DRAWTO Y-COORD.
+ACCX    DS 1 ;X ACCUM.
+ACCY    DS 1 ;Y ACCUM.
+DELTAX  DS 1 ;DRAW WORK AREA.
+DELTAY  DS 1 ;DRAW WORK AREA.
+INCX    DS 1 ;DRAW X INCREMENT.
+INCY    DS 1 ;DRAW Y INCREMENT.
+COUNTR  DS 1 ;DRAWTO COUNTER.
+ENDPT   DS 1 ;DRAWTO ENDPOINT.
+HOLD    DS 1 ;WORK AREA.
+XWORK   DS 1
+YWORK   DS 1
+YOFSET  DS 1 ;PLOT Y OFFSET.
+SHAPIX  DS 1 ;OBJECT #.
+SHAPCT  DS 1 ;OBJECT SHAPE COUNTER.
+XI      DS 1 ;OBJECT X INCREMENT.
+YI      DS 1 ;OBJECT Y INCREMENT.
+LENGTH  DS 1 ;OBJECT (TAKE A GUESS!)
+
+* PRIMARY USE IN 'TEST' ROUTINE.
+
+VSTOP   DS 1  ;STOP VBLANK FLAG.
+LSOUND  DS 1  ;LASER SOUND FLAG.
+XSOUND  DS 1  ;DETONATION SOUND FLAG.
+CSOUND  DS 1  ;CANNON SOUND FLAG.
+FREQ    DS 1  ;PULSE SOUND FREQUENCY.
+DEMO    DS 1  ;GAME UNDERWAY FLAG.
+STRUCT  DS 1  ;CELL STRUCTURE #.
+NOPLAY  DS 1  ;# OF PLAYERS.
+SDELAY  DS 2  ;PULSE SOUND DELAY.
+LISTPT  DS 1  ;DISPLAY LIST POINTER.
+SCORE1  DS 2  ;LO-BYTE OF SCORES.
+SCORE2  DS 2  ;MD-BYTE OF SCORES.
+SCORE3  DS 2  ;HI-BYTE OF SCORES.
+TSCR1   DS 3  ;TOTAL SCORE BYTES.
+CELNUM  DS 1  ;CELL # BEING DRAWN.
+CELREF  DS 1  ;CELL # BEING REFRESHED
+
+* PRIMARY USE IN 'STRAT' ROUTINE.
+
+GEVNUM  DS 1  ;ATTACKING BACTERION! #
+FRANGE  DS 1  ;ATTACK PLAYER RADIUS.
+GEVESC  DS 1  ;# OF ESCAPED VESSELS.
+TOTCEL  DS 1  ;# OF CELLS REMAINING.
+TURNT   DS 1  ;BACTERION! TURN TIMERS
+FIRETM  DS 1  ;RAM COPY OF 'GEVFRE'
+
+* PRIMARY USE IN 'SHOOT' ROUTINE
+
+FDELAY  DS 2  ;DELAY BETWEEN SHOTS.
+NOBULL  DS 2  ;# OF BULLETS FIRED.
+NOKILL  DS 2  ;# OF VESSELS KILLED.
+
+* PRIMARY USE IN 'TEST' ROUTINE
+
+CELLMV  DS 20 ;CELL MOVING FLAGs.
+CELLNX  DS 20 ;CELL NEW X-COORD.
+CELLOX  DS 20 ;CELL OLD X-COORD.
+
+        ORG     $1CB5
+
+CELLNY  DS 20 ;CELL NEW Y-COORD.
+CELLOY  DS 20 ;CELL OLD Y-COORD.
+GEVCEL  DS 20 ;CELL # BEING HEISTED.
+
+* PRIMARY USE IN 'STRAT' ROUTINE
+
+GEVFRE  DS 20 ;BACTERION! FIRE TIMERS
+MOVET   DS 20 ;BACTERION! MOVE TIMERS
+GEVDES  DS 20 ;DESIRED DIRECTION.
+GEVDIR  DS 20 ;ACTUAL DIRECTION.
+ATTACK  DS 20 ;ATTACKING PLAYER FLAG.
+ESCAPE  DS 20 ;Y-COORD FOR ESCAPING.
+STOP    DS 20 ;BACTERION! ICED FLAG.
+GEVX    DS 20 ;BACTERION! X-COORD.
+GEVY    DS 20 ;BACTERION! Y-COORD.
+TARX    DS 20 ;BACTERION! TARGET-X.
+TARY    DS 20 ;BACTERION! TARGET-Y.
+LSRDIR  DS 20 ;LASER FIRING DIRECTION
+LSRTME  DS 20 ;LASER LIFE TIMER.
+LASERX  DS 20 ;LASER X-COORD.
+LASERY  DS 20 ;LASER Y-COORD.
+
+* PRIMARY USE IN 'DRAW' ROUTINE.
+
+TYPE    DS 20 ;VESSEL TYPE.
+PHASE   DS 20 ;VESSEL PHASE.
+TYPES   DS 1  ;ATTACKING TYPE.
+
+* PRIMARY USE IN 'SHOOT' ROUTINE.
+
+SPEED   DS 20 ;SPEED A PLAYER MOVES.
+CSPEED  DS 20 ;RAM COPY OF 'SPEED'
+BULLET  DS 20 ;BULLET OWNER (0 OR 1)
+
+ TITLE 'BACTERION! MASTER ASSEMBLY'
+
+        INCLUDE D:GEV.TXT
+
+        ORG $2800
+        LOC $0800
+ TITLE 'ONE SHOT INITIALIZER'
+
+        PROC
+
+*       RELOCATE CODE
+
+MOVEIT  JSR SIOINV      ;INIT SOUNDS.
+        LDA #$22        ;INITIALIZE
+        STA SDMCTL      ;DMA CONTROL.
+        LDA #HIGH $2800 ;SET ORIGIN
+        STA HI          ;ADDR. IN
+        LDA #LOW $2800  ;2-BYTE
+        STA LO          ;POINTER.
+        LDA #HIGH $0800 ;SET DESTIN-
+        STA BAHI        ;ATION IN 2-
+        LDA #LOW $0800  ;BYTE
+        STA BALO        ;POINTER.
+        LDY #$00        ;RESET Y-REG.
+MOVELP  LDA (LO),Y      ;MOVE A 256
+        STA (BALO),Y    ;BYTE BLOCK
+        INY             ;USING Y-REG.
+        BNE MOVELP      ;
+        INC HI          ;NEXT 256-
+        INC BAHI        ;BYTE BLOCK.
+        LDA HI          ;
+        CMP #$40        ;DONE YET?
+        BNE MOVELP      ;NO-KEEPITUP.
+        LDA #HIGH TEST  ;SNAG ALL
+        STA DOSINI+1    ;RESET
+        STA CASINI+1    ;VECTORS
+        STA DOSVEC+1    ;SO AS TO
+        LDA #LOW TEST   ;GAIN
+        STA DOSINI      ;COMPLETE
+        STA CASINI      ;CONTROL OF
+        STA DOSVEC      ;THE SYSTEM.
+        JMP TEST        ;ALL DONE. START!
+
+*       BUILD GAME BOARD DISPLAY LIST
+
+INIT    LDX #$00        ;RESET X-REG.
+        LDA #$0E        ;DLIST OPCODE.
+BDLOOP  STA DLIST,X     ;STORE IT.
+        DEX             ;DONE YET?
+        BNE BDLOOP      ;NO! GO BACK!
+        LDA #$70        ;
+        STA DLIST+0     ;INSTALL
+        STA DLIST+1     ;REMAINDER OF
+        LDA #$F0        ;SPECIAL
+        STA DLIST+2     ;DISPLAY
+        LDA #$4E        ;LIST OP-
+        STA DLIST+3     ;CODES & OP-
+        STA DLIST+107   ;ERANDS INTO
+        LDA #HIGH DISP  ;DISPLAY
+        STA DLIST+5     ;LIST
+        LDA #LOW DISP   ;
+        STA DLIST+4     ;
+        LDA #HIGH DISP2 ;
+        STA DLIST+109   ;
+        LDA #LOW DISP2  ;
+        STA DLIST+108   ;
+        LDA #$41        ;
+        STA DLIST+200   ;
+        LDA #$8E        ;
+        STA DLIST+199   ;
+        LDA #HIGH DLIST ;
+        STA DLIST+202   ;
+        LDA #LOW DLIST  ;
+        STA DLIST+201   ;
+
+*       PLAYER/MISSILE INITIALIZATION
+
+        LDA #$3E         ;
+        STA SDMCTL       ;DMA ENABLE.
+        LDA #HIGH PLAYBS ;PM BASE
+        STA PMBASE       ;ADDRESS.
+        LDA #$03         ;GRAPHICS
+        STA GRACTL       ;CONTROL.
+        LDA #$10         ;PRIORITY
+        STA GPRIOR       ;REGISTERS.
+        LDA #$00         ;CLEAR OUT
+        TAX              ;PLAYER 0
+:PMSET  STA PLAY0,X      ;& PLAYER 1
+        STA PLAY1,X      ;
+        DEX              ;ALL DONE?
+        BNE :PMSET       ;NO! CONT.
+
+*       CLEAR OUT PLAYERS' SCOREs
+
+        LDX #$02
+        LDA #$00        ;FILL WITH 0
+:CLRS2  STA SCORE1,X
+        STA SCORE2+1,X
+        STA TSCR1,X
+        DEX             ;ALL DONE?
+        BPL :CLRS2      ;NO! CONTINUE
+
+*       CLEAR PLAYFIELD AREA
+
+        LDA #LOW DISP   ;I'LL LET
+        STA LO          ;YOU GUYS
+        LDA #HIGH DISP  ;FIGURE OUT
+        STA HI          ;WHAT'S GOING
+        LDX #0          ;ON HERE!
+CDLP    LDA LO
+        STA LOTBL,X     ;I'M SO LAZY!
+        LDA HI
+        STA HITBL,X
+        LDA #0
+        LDY #39
+CDLP2   STA (LO),Y
+        DEY
+        BPL CDLP2
+        INX
+        CPX #192
+        BEQ DOIT
+        LDA LO
+        CLC
+        ADC #40
+        STA LO
+        LDA HI
+        ADC #0
+        STA HI
+        JMP CDLP
+
+*       SET UP ATOMIC PILE CELLS
+
+DOIT    LDX STRUCT
+        LDY STRBSE,X
+        LDX #9
+        STX TOTCEL
+SETCEL  LDA :ICELX,Y ;X-COORDS
+        STA CELLOX,X
+        STA CELLNX,X
+        LDA :ICELY,Y ;Y-COORDS
+        STA CELLOY,X
+        STA CELLNY,X
+        LDA #$00
+        STA CELLMV,X ;CELLS NOT MOV-
+        INY          ;ING STAGUS.
+        DEX
+        BPL SETCEL
+
+*       SET UP PLAYERS PROBEs
+
+        LDX #$00   ;FLIP TO GAME
+        STX LISTPT ;BOARD SCREEN
+        STX GEVX+0 ;X-COORD.
+        STX GEVX+1 ;X-COORD.
+        JSR SETPLR ;SET IT UP NOW.
+        LDA NOPLAY ;1 PLAYER GAME?
+        BEQ SETTYP ;YES! SKIP #2
+        INX        ;NO! SET UP PLR 2.
+        JSR SETPLR ;SET IT UP NOW.
+
+*       ATTACKING BACTERION! TYPE
+
+SETTYP  LDA #$01   ;SLOWEST TYPE
+        STA TYPES  ;ATTACKS FIRST.
+        STA TYPE+2
+        STA TYPE+3
+        STA TYPE+4
+
+*       BACTERION! INITIAL A.I. SPEEDS
+
+        LDX #$05
+SETMDB  LDA IMOVDB,X ;MOVEMENT SPEED
+        STA MOVEDB,X
+        LDA ITURDB,X ;TURN SPEED
+        STA TURNDB,X
+        LDA IFIRDB,X ;FIRE SPEED
+        STA FREBSE,X
+        DEX
+        BPL SETMDB
+
+        JMP INIT2
+
+*       INITIALIZE GIVEN PLAYER
+
+SETPLR  LDA #$00     ;PLAYER NO LONG-
+        STA STOP,X   ;ER DEAD OR EXP-
+        STA TYPE,X   ;LODING.
+        LDA #$01     ;SET UP FOR
+        STA SPEED,X  ;COASTING SPEED.
+        STA CSPEED,X ;
+        LDA PLRPHS,X ;CORRECT TYPE
+        STA PHASE,X  ;OF VESSEL
+        STA GEVDIR,X ;PHASE
+        LDA PLRX,X   ;PROPER X-COORD.
+        STA GEVX,X   ;
+        LDA #128     ;PROPER Y-COORD.
+        STA GEVY,X   ;
+        RTS          ;ALL DONE...
+
+PLRX    DB 44,195 ;INITIAL X-COORDS
+PLRPHS  DB 12,4   ;INITIAL DIRECTIONS
+
+* BACTERION! INITIAL TURNING DATABASE
+
+ITURDB  DB 52,44,36,28,20,12
+
+* BACTERION! INITIAL MOVING DATABASE
+
+IMOVDB  DB 13,11,09,07,05,03
+
+* BACTERION! INITIAL FIRING TIMES
+
+IFIRDB  DB 70,65,60,55,50,45
+
+* OFFSET DATABASE TO CELL FORMATIONS
+
+STRBSE  DB 0,10,20
+
+* CELLS INITIAL X-COORDS
+
+:ICELX  DB 68,80,92,62,74
+        DB 86,98,68,80,92
+
+        DB 79,79,79,79,73
+        DB 85,67,91,61,97
+
+        DB 79,71,87,79,79
+        DB 79,79,71,87,79
+
+* CELLS INITIAL Y-COORDS
+
+:ICELY  DB 93,93,93,96,96
+        DB 96,96,99,99,99
+
+        DB 76,82,88,94,98
+        DB 98,102,102,106,106
+
+        DB 86,90,90,94,94
+        DB 94,94,98,98,102
+ TITLE 'BACTERION! MULTI-INITIALIZER'
+
+INIT2   PROC
+
+*       ALLOW THINGS TO SETTLE DOWN
+
+        LDX #$01  ;STOP VERTICAL
+        STX VSTOP ;BLANK ROUTINE
+
+*       INITIALIZE SOUNDS
+
+        DEX        ;
+        TXA        ;
+        STA AUDC3  ;TURN OFF SOUND
+        STA AUDC4  ;REGISTERS & INIT
+        STA AUDCTL ;SOUND CHANNELS.
+
+*       CLEAR PLAYER MISSILE AREA
+
+:ER1    STA MISS,X  ;BACTERION! #1.
+        STA PLAY2,X ;BACTERION! #2.
+        STA PLAY3,X ;BACTERION! #3.
+        STA HITCLR  ;CLEAR COLLISIONS
+        DEX
+        BNE :ER1
+
+* ENEMY BACTERION!s X, Y, & DIRECTION
+
+        LDX #$04   ;HANDLE ALL.
+SETGEV  LDA TYPES  ;GET TYPE OF ATT-
+        STA TYPE,X ;ACKING BACTERION.
+        JSR PICKX  ;RANDOM X-COORD.
+        STA GEVX,X ;STORE IT.
+        LDA RANDOM ;RANDOM NUMBER.
+        BPL :PLUS1 ;BRANCH IF > 0.
+        LDA #21    ;INITIAL Y-COORD.
+        BNE :PLUS2 ;BRANCH!
+:PLUS1  LDA #228   ;INITIAL Y-COORD.
+:PLUS2  STA GEVY,X ;STORE IT.
+        JSR PICKDR ;RANDOM DIRECTION.
+
+* ENEMY BACTERION!Rs TARGET CELL
+
+SEL     LDA #$00     ;CLEAR
+        STA TRY      ;COUNTERS,
+        STA GEVESC   ;# OF ESCAPEES,
+        STA STOP,X   ;DEATH STATUS,
+        STA GEVCEL,X ;TARGET CELL,
+        STA LSRDIR,X ;LASER FLAG,
+        STA GEVFRE,X ;FIRE TIME FLAG,
+        STA ESCAPE,X ;ESCAPE Y-COORD.
+
+        LDA RAND0 ;GET RANDOM #
+        CMP #$D8  ;GREATER THAN $D8
+        BCS SELIT ;YES, BRANCH!
+
+SEL0    LDA #$0A  ;RANDOM # SEED
+        JSR RAND0 ;GET RANDOM CELL #
+        TAY       ;STORE IN Y-REG.
+
+        STX :XHOLD   ;SAVE X-REG.
+CPICK0  LDA ESCAPE,X ;ESCAPE Y-COORD
+        BEQ CPICK1   ;EQUAL 0?
+        TYA          ;NO! MOVE Y TO A
+        CMP GEVCEL,X ;IS THIS CELL
+        BEQ SEL1     ;SPOKEN FOR?
+CPICK1  INX          ;NO! MOVE ON
+        CPX #$05     ;TO NEXT
+        BNE CPICK0   ;BACTERION!
+        LDX :XHOLD   ;RESTORE X-REG.
+
+* HEIST THIS CELL (IN Y-REG.)
+
+        LDA CELLNY,Y ;CELL Y-COORD.
+        CMP #194     ;OFF SCREEN?
+        BCS SEL1     ;YES! TRY AGAIN.
+        LDA #$02     ;RANDOM # SEED.
+        JSR RAND0    ;GET RANDOM #.
+        STY :YHOLD   ;SAVE Y-REG.
+        TAY          ;MOVE # TO ACC.
+        LDA ESCDT,Y  ;GET PROPER ES-
+        STA ESCAPE,X ;CAPE Y-COORD.
+        LDA CELDT,Y  ;GET OFFSET FOR
+        LDY :YHOLD   ;LOCKING ON TO
+        CLC          ;TOP OR BOTTOM
+        ADC CELLNY,Y ;OF CELL & STORE
+        STA TARY,X   ;IN TARGET-Y.
+        LDA CELLNX,Y ;GET X-COORD OF
+        CLC          ;CELL & STORE
+        ADC #44      ;IN TARGET-X.
+        STA TARX,X   ;
+        TYA          ;MAKE THIS CELL
+        STA GEVCEL,X ;SPOKEN FOR.
+        JMP SEL2     ;HANDLE NEXT.
+
+SEL1    LDX :XHOLD   ;RESTORE X-REG.
+        DEC TRY      ;DEC. COUNTERS
+        BNE SEL0     ;& BRANCH!
+
+* CAN'T FIND A CELL, ATTACK PLAYERs
+
+SELIT   LDY NOPLAY ;# OF PLAYERS.
+        INY        ;ADD ONE.
+        TYA        ;RANDOM # SEED.
+        JSR RAND0  ;GET RANDOM #.
+        TAY        ;MOVE TO Y-REG.
+        LDA GEVX,Y ;PLAYER'S X-COORD.
+        STA TARX,X ;USE AS TARGET-X.
+        LDA GEVY,Y ;PLAYER'S Y-COORD.
+        STA TARY,X ;USE AS TARGET-Y.
+
+SEL2    DEX        ;HANDLE NEXT
+        CPX #$01   ;BACTERION! (IF
+        BEQ :NEXT  ;WE AREN'T DONE.)
+        JMP SETGEV ;JUMP TO IT!
+
+*       SET UP RANGE OF ATTACK
+
+:NEXT   LDA #40
+        STA FRANGE
+
+*       SET UP FIRING TIME
+
+        LDX TYPES      ;ATTACK TYPE.
+        LDA FREBSE-1,X ;GET DATA FROM
+        STA FIRETM     ;FIRING DB.
+        CMP #$05       ;IS IT < 5?
+        BCC PROJT1     ;NO! BRANCH!
+        SEC            ;YES! SUBTRACT
+        SBC #$03       ;3 & STORE
+        STA FREBSE-1,X ;IT IN DB.
+
+*       CLEAR PROJECTILE WORK AREA
+
+PROJT1  LDX #12        ;HANDLE ALL.
+        LDA #$FF       ;INACTIVE STATUS.
+CLRPRO  STA BULLET,X   ;OWNER.
+        STA CELLNX+5,X ;X-COORD.
+        STA CELLNY+5,X ;Y-COORD.
+        STA CELLMV+5,X ;MOVING.
+        DEX            ;HANDLE NEXT
+        CPX #$04       ;(IF ANY).
+        BNE CLRPRO     ;
+
+*       SET UP COLOR DATABASES
+
+        LDX #$03     ;COUNTER.
+:SET1   LDA RANDOM   ;RANDOM #.
+        AND #$F0     ;ZAP LO-NIBBLE.
+        ORA #$0A     ;& W/DECIMAL 10.
+        STA PCOLR0,X ;STORE IT.
+        LDA RANDOM   ;RANDOM #.
+        AND #$F0     ;ZAP LO-NIBBLE.
+        ORA :FIELD,X ;OR W/PLAYFIELD.
+        STA COLOR0,X ;STORE IT.
+        DEX          ;HANDLE NEXT.
+        BPL :SET1    ;BRANCH!
+
+        LDA #$00     ;CLEAR.
+        STA NOBULL+0 ;# OF BULLETS
+        STA NOKILL+0 ;FIRED & # OF
+        STA NOBULL+1 ;BACTERIONS!
+        STA NOKILL+1 ;VAPORIZED.
+
+        STA VSTOP    ;START VBLANK.
+
+        RTS          ;BUG OFF!!!
+
+* BACTERION! FIRE TIME DATABASE
+
+FREBSE  DB 0,0,0,0,0,0
+
+* OFFSETS TO TOP & BOTTOM OF CELL
+
+CELDT   DB 21,36
+
+* Y-COORDS FOR ESCAPING BACTERION!
+
+ESCDT   DB 10,245
+
+* COLOR LUM. FOR PLAYERS  PLAYFIELDS
+
+:PLAYC  DB $0C,$0C,$0A,$0A
+:FIELD  DB $0C,$08,$08,$0A
+
+* PICK A RANDOM X-COORD.
+
+PICKX   LDA #100
+        JSR RAND0
+        CLC
+        ADC #75
+        RTS
+
+* PICK A RANDOM DIRECTION (0-15)
+
+PICKDR  LDA #16
+        JSR RAND0
+        STA GEVDIR,X
+        RTS
+
+* PICK A RANDOM # (0 UP TO ACC.)
+
+RAND0   STA HOLDME
+        LDA RANDOM
+RAND01  CMP HOLDME
+        BCC RANOUT
+        LSR A
+        LSR A
+        JMP RAND01
+RANOUT  RTS
+
+HOLDME  DB 0 ;TEMP STORAGE.
+TRY     DB 0 ;COUNTER.
+:XHOLD  DB 0 ;X-REG TEMP STORAGE.
+:YHOLD  DB 0 ;Y-REG TEMP STORAGE.
+
+ TITLE 'GET THE GAME GOING...'
+
+TEST    PROC
+
+        LDA #$00       ;TURN OFF
+        STA AUDC1      ;SOUND
+        STA AUDC2      ;REGISTERS.
+
+        JSR :SETP0     ;SET UP TITLE
+        JSR ADITUP     ;SCREEN SCORES
+        LDA #$01       ;& SHOW TITLE
+        STA LISTPT     ;SCREEN.
+        STA VSTOP      ;
+
+        LDA #$06       ;SET UP VERT-
+        LDX #HIGH VBL  ;ICAL BLANK
+        LDY #LOW VBL   ;ROUTINES.
+        JSR SETVBV     ;
+
+        LDA #$07       ;SET UP DEF.
+        LDX #HIGH DBL  ;VERTICAL
+        LDY #LOW DBL   ;BLANK
+        JSR SETVBV     ;ROUTINES.
+
+        LDA #$C0       ;SET UP DLI
+        STA NMIEN      ;ROUTINES.
+
+:DEMOX  JSR SHUTUP
+        LDA DEMO       ;WAIT FOR PUSH
+        CMP #$01       ;OF START KEY.
+        BNE :DEMOX     ;
+        INC DEMO       ;
+
+        JSR INIT       ;INITIALIZE...
+
+*       START OF NEW GAME
+
+SAVE0   LDA DEMO       ;CHANGE STATUS
+        CMP #$02       ;OF 'DEMO'
+        BNE TEST       ;VARIABLE
+
+*       GAME PAUSED?
+
+        LDA CH         ;IS SPACEBAR
+        CMP #$21       ;PRESSED?
+        BNE :REFCL     ;YES. IS BAR
+        LDA SKSTAT     ;STILL BEING
+        AND #$04       ;PRESSED?
+        BEQ :REFCL     ;YES-CONTINUE.
+
+        JSR ADITUP     ;ADD UP SCORES
+
+        LDA TOTCEL     ;HOLD # OF
+        PHA            ;CELLS LEFT.
+        LDA #$0A       ;MAKE WEIRD
+        STA TOTCEL     ;SOUND.
+
+        LDA #$01       ;SWITCH TO
+        STA LISTPT     ;TITLE SCREEN.
+        STA VSTOP
+        STA CH         ;WAIT FOR
+        JSR SHUTUP     ;SPACEBAR.
+
+:WAIT1  LDA CH         ;IS SPACEBAR
+        CMP #$21       ;PRESSED? NO,
+        BNE :WAIT1     ;SO WAIT.
+:WAIT2  LDA SKSTAT     ;YES. IS BAR
+        AND #$04       ;STILL BEING
+        BEQ :WAIT2     ;PRESSED?
+
+        PLA            ;RESTORE # OF
+        STA TOTCEL     ;CELLS LEFT.
+
+        LDA #$00       ;SWITCH BACK
+        STA LISTPT     ;TO PLAYFIELD
+        STA VSTOP      ;& CONTINUE...
+        STA CH
+
+*   REFRESH CELLS (ONE PER PASS)
+
+:REFCL  DEC CELREF     ;OUT OF CELLS
+        BPL GETCEL     ;TO REFRESH?
+        LDA #$09       ;YES. START
+        STA CELREF     ;AGAIN...
+GETCEL  LDX CELREF     ;GET CELL # TO
+        LDA CELLMV,X   ;REFRESH & SEE
+        BNE GOTCEL     ;IF IT MOVES.
+
+        LDA CELLOX,X   ;CELL X-COORD
+        STA PLOTX      ;
+        LDA CELLOY,X   ;CELL Y-COORD
+        STA PLOTY      ;
+        LDA #1         ;SPEC. COLOR
+        STA COLOR      ;
+        LDA #0         ;SPEC. OBJECT
+        JSR OBJECT     ;DRAW IT...
+
+*  DRAW MOVING CELLS (ALL AT ONCE)
+
+GOTCEL  LDA #$09       ;SET UP CELL #
+        STA CELNUM     ;TO DRAW.
+SAVE1   LDX CELNUM     ;GET CELL #.
+        LDA CELLMV,X   ;IS IT BEING
+        BEQ SAVE2      ;CARRIED OFF?
+        JSR SHOCEL     ;YES. DRAW IT.
+SAVE2   DEC CELNUM     ;MOVE ON TO
+        BPL SAVE1      ;NEXT CELL.
+
+*  DRAW & ERASE BACTERION! LASERS
+
+        LDA #$04       ;CHECK ALL
+        STA LSRCNT     ;VESSELS.
+LASER3  LDX LSRCNT     ;IS THIS VES-
+        LDA LSRDIR,X   ;SEL FIRING?
+        BEQ NXTLSR     ;NO. CONTINUE.
+        BMI LASER5     ;YES. ERASE?
+        ORA #$80       ;SET UP LASER
+        STA LSRDIR,X   ;TO BE ERASED.
+        LDA #$02       ;SPECIFY COLOR
+        STA COLOR      ;OF LASER.
+        LDA GEVX,X     ;GET X-COORD
+        SEC            ;OF FIRING
+        SBC #44        ;VESSEL & USE
+        STA LASERX,X   ;AS LASER
+        STA PLOTX      ;X-COORD.
+        LDA GEVY,X     ;GET Y-COORD
+        SEC            ;OF FIRING
+        SBC #$1C       ;VESSEL & USE
+        CMP #192       ;AS LASER
+        BCS LASER6     ;Y-COORD. DO
+        STA LASERY,X   ;NOT FIRE IF
+        STA PLOTY      ;NOT ON-SCREEN
+        LDA LSRDIR,X   ;ELSE, DRAW
+        AND #$7F       ;FIRING LASER
+        JSR OBJECT     ;(DEATH RAY).
+        JMP NXTLSR     ;HANDLE NEXT.
+LASER5  DEC LSRTME,X   ;TIME TO
+        BPL NXTLSR     ;ERASE LASER?
+        LDA LASERX,X   ;YES. GET X
+        STA PLOTX      ;COORD & Y
+        LDA LASERY,X   ;COORD FOR
+        STA PLOTY      ;ERASING.
+        LDA #$00       ;SPECIFY COLOR
+        STA COLOR      ;AS BACKGROUND.
+        LDA LSRDIR,X   ;NOW ERASE
+        AND #$7F       ;LASER.
+        JSR OBJECT     ;
+        LDX LSRCNT     ;TURN OFF
+LASER6  LDA #$00       ;LASER FOR
+        STA LSRDIR,X   ;THIS VESSEL.
+NXTLSR  DEC LSRCNT     ;HANDLED ALL
+        LDA LSRCNT     ;LASERS? IF
+        CMP #$01       ;SO, QUIT.
+        BNE LASER3     ;ELSE GO BACK.
+
+*       DRAW & ERASE PROJECTILES
+
+        LDX #17      ;HANDLE ALL.
+PROJ5   LDA CELLMV,X ;IS THIS BULLET
+        BEQ PROJ6    ;ACTIVE?
+        LDA CELLOX,X ;YES. GET X
+        STA PLOTX    ;COORD.
+        LDA CELLOY,X ;GET Y-COORD.
+        STA PLOTY    ;OF BULLET.
+        LDA #$00     ;SET UP TO ERASE
+        STA CELLMV,X ;THIS BULLET.
+        STA COLOR    ;SPECIFY COLOR.
+        STX :XHOLD   ;SAVE X-REG.
+        JSR PLOTPT   ;ERASE IT NOW!
+        LDX :XHOLD   ;RESTORE X-REG.
+        LDA CELLNX,X ;GET NEW BULLET
+        STA CELLOX,X ;X-COORD & PRE-
+        STA PLOTX    ;PARE TO PLOT.
+        LDA CELLNY,X ;GET NEW BULLET
+        STA CELLOY,X ;Y-COORD & PRE-
+        STA PLOTY    ;PARE TO PLOT.
+        LDA #$03     ;SPECIFY COLOR
+        STA COLOR    ;OF NEW BULLET.
+        STX :XHOLD   ;SAVE X-REG.
+        JSR PLOTPT   ;DRAW NEW BULLET
+        LDX :XHOLD   ;RESTORE X-REG.
+PROJ6   DEX          ;MOVE ON TO NEXT
+        CPX #$09     ;BULLET. IF NONE
+        BNE PROJ5    ;LEFT, QUIT.
+
+*       ALL CELLS GONE?
+
+GAME3   LDA TOTCEL   ;TOTAL # OF
+        BPL GAME1    ;CELLS < 0?
+        JSR SHUTUP   ;YES. SOUND OFF.
+        LDA #$01     ;STOP ALL SCREEN
+        STA VSTOP    ;ACTION.
+        STA RTCLOK+2 ;SET UP TO
+        LDX RTCLOK+1 ;PAUSE FOR
+        INX          ;SOME TIME.
+HALT    CPX RTCLOK+1 ;IS PAUSE DONE?
+        BNE HALT     ;NO. WAIT.
+        JMP TEST     ;YES. RESTART.
+
+*BACTERION!s DESTROYED OR OFF SCREEN?
+
+GAME1   LDA GEVESC  ;IS NUMBER OF
+        CMP #$03    ;ESCAPED VESSELS
+        BEQ GAMEE   ;EQUAL TO THREE?
+        JMP SAVE0   ;NO, GO BACK.
+
+GAMEE   JSR ADITUP  ;ADD UP SCORES.
+
+        INC TYPES   ;SET UP NEXT TYPE
+        LDA TYPES   ;OF ATTACKING
+        CMP #$07    ;BACTERION.
+        BCC GAME2   ;
+
+        LDA RANDOM  ;GET RANDOM
+        AND #$F0    ;BACKGROUND
+        STA COLOR4  ;COLOR.
+
+*       FLIP TO TITLE SCREEN
+
+        LDA #$01     ;STOP ALL SCREEN
+        STA VSTOP    ;ACTION & FLIP
+        STA LISTPT   ;TO TITLE SCREEN
+
+        JSR SHUTUP   ;SOUNDS OFF.
+        LDA TOTCEL   ;SAVE TOTAL #
+        PHA          ;OF CELLS LEFT.
+        LDA #$0A     ;MAKE WEIRD
+        STA TOTCEL   ;TITLE SOUND.
+
+        STA RTCLOK+2 ;PAUSE FOR A
+        LDX RTCLOK+1 ;WHILE.
+        INX          ;
+:PAUSE  CPX RTCLOK+1 ;PAUSE TIME UP?
+        BNE :PAUSE   ;NO. WAIT.
+
+        PLA          ;RESTORE TOTAL #
+        STA TOTCEL   ;OF CELLS LEFT.
+
+        LDA #$00     ;FLIP TO GAME
+        STA LISTPT   ;SCREEN & BEGIN
+        STA VSTOP    ;SCREEN ACTION.
+        STA CH
+        STA XSOUND
+        STA CSOUND
+        STA LSOUND
+
+* SPEED UP BACTERION! MOVE/TURN RATES
+
+        LDX #$05     ;UPDATE ALL.
+FAST1   LDA MOVEDB,X ;IS MOVE RATE AT
+        CMP #$02     ;LOWEST LEVEL?
+        BCC FAST2    ;YES, CONTINUE.
+        DEC MOVEDB,X ;NO. DECREMENT.
+FAST2   LDA TURNDB,X ;IS TURN RATE AT
+        CMP #$08     ;LOWEST LEVEL?
+        BCC FAST3    ;YES, CONTINUE.
+        SEC          ;NO. DECREMENT.
+        SBC #$04     ;
+        STA TURNDB,X ;
+FAST3   DEX          ;UPDATE NEXT.
+        BPL FAST1    ;
+
+        LDA #$01     ;MAKE ATTACKING
+GAME2   STA TYPES    ;BACTERION! THE
+        STA TYPE+2   ;SLOWEST TYPE
+        STA TYPE+3   ;FOR BEGINNING
+        STA TYPE+4   ;OF NEW WAVE.
+
+*       SET UP FOR NEXT ATTACK
+
+        JSR INIT2    ;INITIALIZE...
+        JMP SAVE0    ;BEGIN AGAIN.
+
+*       VERTICAL BLANK ROUTINE
+
+VBL     CLD            ;CLEAR DECIMAL
+        LDA LISTPT     ;RESEED
+        ASL A          ;DISPLAY LIST
+        TAX            ;VECTORS ACC-
+        LDA :LSTDB+0,X ;ORDING TO
+        STA SDLSTL+0   ;'LISTPT'
+        LDA :LSTDB+1,X ;VARIABLE.
+        STA SDLSTL+1   ;DO THE SAME
+        LDA :DLIDB+0,X ;THING FOR
+        STA VDSLST+0   ;DLI VECTORS.
+        LDA :DLIDB+1,X ;
+        STA VDSLST+1   ;
+
+        LDA #$00    ;MAKE ALL PLAYER/
+        STA HPOSP0  ;MISSILE X-COORDS
+        STA HPOSP1  ;EQUAL TO ZERO.
+        STA HPOSP2  ;THIS PROVIDES A
+        STA HPOSP3  ;NICE BORDER AT
+        STA HPOSM0  ;THE SCREEN TOP.
+        STA HPOSM1  ;THE DLIs HANDLE
+        STA HPOSM2  ;PROPER PLACEMENT
+        STA HPOSM3  ;OF X-COORDS.
+
+        LDA VSTOP   ;IS SCREEN ACTION
+        BNE XITVBL  ;HALTED?
+
+*       KILL ATTRACT MODE
+
+        STA ATRACT
+
+*       FLASH CELLS
+
+        LDA COLOR0  ;KEEP SAME LUM.
+        CLC         ;BUT UPDATE
+        ADC #$10    ;COLOR.
+        STA COLOR0  ;
+
+*       BACTERION! ATTACK STRATEGY
+
+        LDA #$04    ;ALL VESSELS
+        STA GEVNUM  ;ATTACK!
+VBL2    JSR STRAT   ;NASTY ROUTINE!
+        DEC GEVNUM  ;NEXT VESSEL
+        LDA GEVNUM  ;ATTACKS!
+        CMP #$01    ;ALL DONE?
+        BNE VBL2    ;IF NOT, CONT.
+
+*       TURN ENEMY BACTERION!s
+
+        JSR TURN
+
+*       MOVE ENEMY BACTERION!s
+
+        JSR MOVE
+
+XITVBL  JMP SYSVBV
+
+*       DEF. VERTICAL BLANK
+
+DBL     CLD         ;CLEAR DECIMAL
+
+*       READ CONSOLE BUTTONS
+
+        JSR BUTTON
+
+*       PULSE SOUND
+
+        JSR PULSE
+
+        LDA VSTOP   ;ALL SCREEN
+        BNE XITDBL  ;ACTION HALTED?
+
+*       READ JOYSTICKS & MOVE PLAYERS
+
+        JSR STICKS  ;PLAYERS MOVING
+        JSR SHOOT   ;PLAYERS FIRING
+
+*     DON'T LET ANYONE GO OFF SCREEN
+
+        JSR BOUNDS
+
+*     DID ANYBODY RUN INTO ANYBODY?
+
+        JSR COLLIDE
+
+*     KEEP TRACK OF HEISTED CELLS
+
+        JSR TRACK
+
+*       BACTERION! LASER SOUND
+
+        JSR ZAP
+
+*       PLAYER'S CANNON SOUND
+
+        JSR CANNON
+
+*       DETONATION SOUND
+
+        JSR BOOM
+
+*       DRAW PLAYERS & BACTERION!s
+
+        JSR DRAW
+
+XITDBL  JMP XITVBV   ;ALL DONE.
+
+*       PULSE SOUND ROUTINE
+
+PULSE   LDX TOTCEL   ;GET TOTAL # OF
+        BMI PULRTS   ;CELLS LEFT.
+        LDA FREQS,X  ;GET ASSOCIATED
+        STA FREQ     ;PULSE FREQUENCY
+        LDA DELS,X   ;& SOUND DELAY
+        STA SDELAY+1 ;TIME. STORE IT.
+        LDX FREQ     ;STORE PROPER
+        STX AUDF1    ;FREQ. INTO
+        INX          ;SOUND REGS. 1
+        STX AUDF2    ;AND 2.
+        LDA SDELAY   ;DECREMENT DELAY
+        BEQ SOUND5   ;TIMER IF NON
+        DEC SDELAY   ;ZERO.
+PULRTS  RTS          ;RETURN.
+SOUND5  LDA SDELAY+1 ;RESTORE DELAY
+        STA SDELAY   ;TIME IF ZERO.
+        INC FLIP     ;TOGGLE PULSE
+        LDA FLIP     ;SOUND GENERATOR
+        AND #$01     ;(IF OFF, TURN
+        TAX          ;ON. IF ON, TURN
+        LDA REG,X    ;OFF.) & STORE
+        STA AUDC1    ;INTO PROPER
+        STA AUDC2    ;AUDIO CHANNEL
+        RTS          ;REGISTERS.
+
+REG     DB $00,$A4   ;AUDIO OFF/ON
+FLIP    DB 0         ;FLIP/FLOP VAR.
+LSRCNT  DB 0         ;LASER COUNTER.
+
+*       PULSE SOUND FREQUENCIES
+
+FREQS   DB 160,170,180,190,200
+        DB 210,220,230,240,250,140
+
+*       PULSE SOUND DELAYS
+
+DELS    DB 02,04,06,08,10,12,14
+        DB 16,18,20,01
+
+*       BACTERION! LASER SOUND
+
+ZAP     LDX LSOUND  ;IS SOUND ON?
+        BEQ ZAPOFF  ;NO. QUIT!
+        DEX         ;YES.
+        DEC LSOUND  ;GET PROPER
+        LDA LFTBL,X ;FREQ. AND STORE
+        STA AUDF3   ;INTO REGISTER.
+        LDA LCTBL,X ;GET PROPER CHAN.
+        STA AUDC3   ;AND STORE.
+ZAPOFF  RTS         ;ALL DONE...
+
+*       BACTERION! LASER FREQUENCIES
+
+LFTBL   DB 0,236,216,197,177,157
+        DB 138,118,99,79,59,40,20,1
+
+*       BACTERION! LASER CHANNELS
+
+LCTBL   DB $00,$A2,$A2,$A2,$A2,$A4
+        DB $A4,$A4,$A4,$A4,$A4,$A6
+        DB $A6,$A6
+
+*       PLAYER'S CANNON SOUND
+
+CANNON  LDX CSOUND  ;IS SOUND ON?
+        BEQ CANOFF  ;NO. QUIT.
+        DEX         ;YES. GET PROPER
+        DEC CSOUND  ;FREQUENCY &
+        LDA CFTBL,X ;STORE INTO REG.
+        STA AUDF4   ;GET PROPER
+        LDA CCTBL,X ;CHANNEL & STORE
+        STA AUDC4   ;INTO REG.
+CANOFF  RTS         ;ALL DONE...
+
+*       CANNON FREQUENCIES
+
+CFTBL   DB 0,254,212,170,127,85,43,1
+
+*       CANNON CHANNELS
+
+CCTBL   DB $00,$A8,$A8,$A8,$A8,$A8
+        DB $A8,$A8
+
+*       DETONATION SOUND
+
+BOOM    LDX XSOUND  ;IS SOUND ON?
+        BEQ BOMOFF  ;NO. CONTINUE.
+        DEX         ;YES. GET PROPER
+        DEC XSOUND  ;FREQ. AND STORE
+        LDA XFTBL,X ;INTO SOUND
+        STA AUDF3   ;REGISTER.
+        LDA XCTBL,X ;GET PROPER
+        STA AUDC3   ;CHANNEL & STORE.
+BOMOFF  RTS         ;ALL DONE...
+
+*       DETONATION FREQUENCIES
+
+XFTBL   DB 0,253,249,245,241,237,234
+        DB 230,226,222,218,214,211
+        DB 207,203,199,195,191,188
+        DB 184,180,176,172,168,165
+        DB 161,157,153,149,145,142
+        DB 138,134,130,126,123,119
+        DB 115,111,107,103,100,96,92
+        DB 88,84,80,77,73,69,65,61,57
+        DB 54,50,46,42,38,34,31,27,23
+        DB 19,15,11,08,04
+
+*       DETONATION CHANNELS
+
+XCTBL   DB $00,$8A,$8A,$8A,$8A,$8A
+        DB $8A,$8A,$8A,$8A,$8A,$8A
+        DB $8A,$8A,$8A,$8A,$8A,$8A
+        DB $8A,$8A,$8A,$8A,$8A,$8A
+        DB $8A,$8A,$8A,$8A,$8A,$8A
+        DB $8A,$8A,$8A,$8A,$8A,$8A
+        DB $8A,$8A,$8A,$8A,$8A,$8A
+        DB $8A,$8A,$8A,$8A,$8A,$8A
+        DB $8A,$8A,$8A,$8A,$8A,$8A
+        DB $8A,$8A,$8A,$8A,$8A,$8A
+        DB $8A,$8A,$8A,$8A,$8A,$8A
+
+*       READ CONSOLE BUTTONS
+
+BUTTON  LDA CONSOL ;CONSOLE SWITCH.
+        CMP #$07   ;IS IT PRESSED?
+        BEQ :ACTVE ;YES, CONTINUE.
+        STA :PREV  ;NO. SAVE IT.
+        RTS        ;RETURN.
+:ACTVE  LDA :PREV  ;GET CONSOLE VALUE
+        CMP #$06   ;START BUTTON ON.
+        BEQ :START ;
+        CMP #$05   ;SELECT BUTTON ON.
+        BEQ :SELCT ;
+        CMP #$03   ;OPTION BUTTON ON.
+        BEQ :OPTON ;
+        RTS        ;CONFUSED! RETURN.
+
+*       START KEY PRESSED!!!
+
+:START  LDX #$01   ;GAME START. UP-
+        JMP :ENDBT ;DATE STATUS.
+
+*       SELECT KEY PRESSED!!!
+
+:SELCT  INC NOPLAY ;UPDATE # OF PLAY-
+        LDA NOPLAY ;ERS. (1 OR 2)
+        AND #$01   ;SAVE IN 'NOPLAY'
+        STA NOPLAY ;VARIABLE.
+
+:SETP0  LDX #19      ;CLEAR PLAYERS'
+        LDA #$00     ;SCORE LINES
+:SETP1  STA PLAYR1,X ;BY PLACING
+        STA PLAYR2,X ;BLANKS IN ALL
+        DEX          ;POSITIONS.
+        BPL :SETP1   ;
+
+        LDX NOPLAY   ;GET # PLAYERS.
+        LDA :PLINE,X ;DECIDE HOW MANY
+        TAX          ;CHARACTERS TO
+:SETP2  LDA :LINE1,X ;USE FOR PLAYER
+        STA PLAYR1,X ;SCORE LINE &
+        LDA :LINE2,X ;INSTALL INTO
+        STA PLAYR2,X ;PLAYER SCORE
+        DEX          ;LINE. CONTINUE
+        BPL :SETP2   ;UNTIL DONE.
+        JMP :ENDBT
+
+:OPTON  INC STRUCT   ;CHANGE STRUCT-
+        LDA STRUCT   ;URE OF INITIAL
+        CMP #$03     ;CELL PATTERN.
+        BCS :OPTON   ;RANGE: 0-2.
+        LDX #$00
+
+:ENDBT  STX DEMO  ;UPDATE 'DEMO'
+        STX :PREV ;UPDATE PREVIOUS
+        RTS       ;ALL DONE...
+
+:PREV   DB      0 ;OLD CONSOLE VALUE.
+
+:PLINE  DB 10,19  ;SCORE LINE CHARA-
+                  ;CTERS PER PLAYER.
+
+*       PLAYER 1/PLAYER 2 SCORE LINE
+
+:LINE1  DB 176,172,161,185,165,178
+        DB 00,$D1,00,00,00,00,176
+        DB 172,161,185,165,178,00,$D2
+
+*       000000/000000 SCORE LINE
+
+:LINE2  DB 00,$50,$50,$50,$50,$50,$50
+        DB 00,00,00,00,00,00
+        DB $50,$50,$50,$50,$50,$50,00
+
+*       ADD UP SCORES
+
+ADITUP  SED          ;SET DECIMAL.
+        LDX NOPLAY   ;# OF PLAYERS.
+CALC4   LDY NOKILL,X ;# OF KILLS FOR
+        BEQ CALCX    ;THIS PLAYER.
+CALC5   LDA TYPES    ;BACTERION! TYPE
+        ASL A        ;(1 TO 6) IS
+        ASL A        ;MULTIPLIED BY
+        ASL A        ;10 & ADDED TO
+        ASL A        ;PLAYERS' SCORE
+        CLC          ;
+        ADC SCORE3,X ;
+        STA SCORE3,X ;
+        LDA #$00     ;OVERFLOW
+        ADC SCORE2,X ;CORRECTION.
+        STA SCORE2,X ;
+        LDA #$00     ;OVERFLOW
+        ADC SCORE1,X ;CORRECTION.
+        STA SCORE1,X ;
+        DEY          ;HANDLED ALL
+        BNE CALC5    ;KILLS?
+CALCX   DEX          ;HANDLED ALL
+        BPL CALC4    ;PLAYERS?
+
+*       DISPLAY SCORES
+
+        LDX #$05       ;SIX DIGITS.
+CALC6   LDY NOPLAY     ;# OF PLAYERS.
+        TXA            ;
+        AND SCMASK,Y   ;AND IN SCORE
+        TAX            ;MASK & GET
+        LDA SCORE1,X   ;SCORE DIGIT.
+        PHA            ;HOLD IT.
+        AND #$0F       ;PLACE '5' IN
+        ORA #$50       ;HIGH NIBBLE.
+        LDY PUTSCR,X   ;FIND WHERE TO
+        STA PLAYR2+1,Y ;PUT & DO SO.
+        PLA            ;RESTORE DIGIT
+        LSR A          ;& SHIFT INTO
+        LSR A          ;LOW-NIBBLE.
+        LSR A          ;
+        LSR A          ;PLACE '5' IN
+        ORA #$50       ;HIGH-NIBBLE
+        STA PLAYR2,Y   ;& STORE.
+        DEX            ;IF NOT DONE,
+        BPL CALC6      ;CONTINUE.
+
+*       ADD UP TEAM SCORE
+
+        CLC            ;CLEAR CARRY
+        LDX #$04       ;LOOP VAR.
+        LDY #$02       ;LOOP VAR.
+CALC7   LDA SCORE1,X   ;ADD UP CON-
+        ADC SCORE1+1,X ;SECUTIVE
+        STA TSCR1,Y    ;SCORES &
+        DEX            ;STORE INTO
+        DEX            ;TEAM SCORE
+        DEY            ;VARIABLES.
+        BPL CALC7      ;CONTINUE.
+
+*       DISPLAY TEAM SCORE
+
+        LDX #$02       ;THREE BYTES.
+CALC8   LDY PUTTME,X   ;WHERE TO PUT.
+        LDA TSCR1,X    ;TEAM SCORE.
+        PHA            ;HOLD IT.
+        AND #$0F       ;PUT '5' IN
+        ORA #$50       ;HI-NIBBLE.
+        STA TEAM2+1,Y  ;STORE DIGIT.
+        PLA            ;RESTORE IT.
+        LSR A          ;SHIFT HI-
+        LSR A          ;NIBBLE TO LO-
+        LSR A          ;NIBBLE.
+        LSR A          ;PUT '5' IN
+        ORA #$50       ;HI-NIBBLE.
+        STA TEAM2,Y    ;STORE IT.
+        DEX            ;IF NOT DONE,
+        BPL CALC8      ;CONTINUE.
+
+        CLD            ;CLEAR DECIMAL.
+        RTS            ;ALL DONE...
+
+*       TURN OFF SOUND
+
+SHUTUP  LDA #$00    ;DEACTIVATE
+        STA AUDC3   ;SOUND REGISTERS
+        STA AUDC4   ;3 & 4.
+        STA LSOUND  ;DEACTIVATE
+        STA XSOUND  ;EXPLOSIONS
+        STA CSOUND  ;CANNON & LASERS.
+        RTS         ;ALL DONE...
+
+*       DLI ROUTINES
+
+*       GAME BOARD DLIs
+
+DLI     CLD            ;CLEAR DEC.
+        PHA            ;SAVE ACC.
+        LDA GEVX+0     ;GET X-COORDS
+        STA HPOSP0     ;OF ALL ACTIVE
+        LDA GEVX+1     ;VESSELS &
+        STA HPOSP1     ;STORE INTO PM
+        LDA GEVX+2     ;HORIZONTAL
+        STA HPOSP2     ;REGISTERS.
+        LDA GEVX+3     ;
+        STA HPOSP3     ;
+        LDA GEVX+4     ;
+        STA HPOSM3     ;
+        CLC            ;
+        ADC #$02       ;
+        STA HPOSM2     ;
+        CLC            ;
+        ADC #$02       ;
+        STA HPOSM1     ;
+        CLC            ;
+        ADC #$02       ;
+        STA HPOSM0     ;
+        LDA #LOW DLI2  ;SET UP FOR
+        STA VDSLST     ;NEXT DISPLAY
+        LDA #HIGH DLI2 ;LIST INTER-
+        STA VDSLST+1   ;RUPT REQUEST.
+        PLA            ;RESTORE ACC.
+        RTI            ;ALL DONE...
+
+DLI2    PHA            ;SAVE ACC.
+        LDA #$00       ;MAKE X-COORDS
+        STA HPOSP0     ;OF ALL ACTIVE
+        STA HPOSP1     ;VESSELS EQUAL
+        STA HPOSP2     ;TO ZERO. THIS
+        STA HPOSP3     ;PROVIDES A
+        STA P0PF       ;NICE BORDER
+        STA HPOSM1     ;AT THE
+        STA HPOSM2     ;BOTTOM.
+        STA HPOSM3     ;
+        PLA            ;RESTORE ACC.
+        RTI            ;ALL DONE...
+
+* TITLE SCREEN DLIs
+
+DLIDLI  PHA             ;SAVE ACC.
+        TXA             ;SAVE THE
+        PHA             ;X-REG.
+        LDX #$07        ;LOAD X-REG.
+        LDA DSHIFT      ;OKAY, NOW
+        STA CSHIFT      ;I'LL LET
+DLIXX   LDA CSHIFT      ;YOU GUYS
+        STA WSYNC       ;FIGURE OUT
+        STA COLPF0+1    ;HOW I GOT
+        LDA CSHIFT      ;THAT SUPER
+        CLC             ;DUPER STU-
+        ADC #$02        ;PENDOUS
+        STA CSHIFT      ;FANCY
+        DEX             ;COLOR CHANGE
+        BPL DLIXX       ;(SO THERE!)
+        LDA #LOW DLIXY  ;SET UP FOR
+        STA VDSLST      ;NEXT DLI
+        LDA #HIGH DLIXY ;(IF YOU
+        STA VDSLST+1    ;DON'T MIND).
+        DEC BLAH        ;DEC TIMER.
+        BPL DLIZZ       ;BRANCH!
+        LDA STRUCT      ;RESET
+        STA BLAH        ;TIMERS.
+        INC BLAH        ;INCREMENT
+        ASL BLAH        ;& SHIFT
+        INC DSHIFT      ;REGISTERS.
+DLIZZ   PLA             ;RESTORE
+        TAX             ;X-REG.
+        PLA             ;RESTORE ACC.
+        RTI             ;LATER Y'ALL!
+
+DLIXY   PHA             ;SAVE ACC.
+        LDA COLOR0+1    ;RESTORE OLD
+        STA COLPF0+1    ;COLOR REG.
+        PLA             ;RESTORE ACC.
+        RTI             ;LATER Y'ALL!
+
+:XHOLD  DB      0      ;X-REG TEMP.
+CSHIFT  DB      0      ;COLOR SHIFT.
+DSHIFT  DB      0      ;COLOR SHIFT.
+BLAH    DB      0      ;DUM TIMER.
+
+:LSTDB  DW      DLIST  ;LO/HI DISPLAY
+        DW      DLIST2 ;LIST BYTES.
+
+:DLIDB  DW      DLI    ;LO/HI DLI
+        DW      DLIDLI ;BYTES.
+
+*       PLAYER SCORE PLACEMENT BYTES
+
+PUTSCR  DB 1,13,3,15,5,17
+
+*       TEAM SCORE PLACEMENT BYTES
+
+PUTTME  DB 7,9,11
+
+*       SCORE PLACEMENT MASKS
+
+SCMASK  DB $0E,$0F
+
+
+ TITLE 'OUT OF BOUNDS CHECK'
+
+BOUNDS  PROC
+
+        LDX #$04     ;CHECK EVERYBODY
+
+*       CHECK Y-COORDS
+
+BOUND3  CPX #$02     ;A BACTERION?
+        BCS CHECKX   ;IF SO LEAVE IT.
+        LDA GEVY,X   ;IS PLAYER OUT
+        CMP LOWY     ;OF BOUNDS?
+        BCS BOUND5   ;NO, CONTINUE.
+BOUND4  LDY GEVDIR,X ;OUT OF BOUNDS!
+        LDA REFLEY,Y ;GET REFLEX
+        STA GEVDIR,X ;ANGLE & STORE.
+        JSR MOVSUB   ;MOVE ONCE MORE
+        JMP CHECKX   ;& CHECK X-COORD
+BOUND5  CMP HIGHY    ;BOUNDARY.
+        BCS BOUND4   ;
+
+*       CHECK X-COORDS
+
+CHECKX  LDA GEVX,X   ;OUT OF BOUNDS
+        CMP LOWX     ;ON X-COORDS?
+        BCS BOUND7   ;NO, CONTINUE.
+BOUND6  LDY GEVDIR,X ;OUT OF BOUNDS!
+        LDA REFLEX,Y ;GET REFLEX
+        STA GEVDIR,X ;ANGLE & STORE.
+        JSR MOVSUB   ;MOVE ONCE MORE
+        JMP CHECKY   ;& CHECK NEXT.
+BOUND7  CMP HIGHX    ;
+        BCS BOUND6   ;
+CHECKY  DEX          ;CHECK NEXT
+        BPL BOUND3   ;VESSEL.
+        RTS          ;ALL DONE.
+
+LOWX    DB      44   ;LOWEST X-COORD
+LOWY    DB      32   ;LOWEST Y-COORD
+HIGHX   DB      200  ;HIGHEST X-COORD
+HIGHY   DB      215  ;HIGHEST Y-COORD
+
+*  REFLEX DIRECTIONS FOR Y-COORDS
+
+REFLEY  DB 08,07,06,05,04,03,02,01
+        DB 00,15,14,13,12,11,10,09
+
+*  REFLEX DIRECTIONS FOR X-COORDS
+
+REFLEX  DB 00,15,14,13,12,11,10,09
+        DB 08,07,06,05,04,03,02,01
+
+
+ TITLE 'TITLE SCREEN DISPLAY LIST'
+
+
+DLIST2  DB $70,$70,$70,$70,$46
+        DW PLAYR1
+        DB $46
+        DW PLAYR2
+        DB $70,$70,$70,$F0,$46
+        DW TITLE
+        DB $B0,$46
+        DW TITLE2
+        DB $50,$46
+        DW NAME1
+        DB $20,$46
+        DW NAME2
+        DB $20,$46
+        DW NAME3
+        DB $20,$46
+        DW NAME4
+        DB $70,$70,$46
+        DW NAME5
+        DB $70,$70,$46
+        DW TEAM1
+        DB $46
+        DW TEAM2
+        DB $41
+        DW DLIST2
+
+
+
+ TITLE 'BACTERION! STRATEGY ROUTINE'
+
+STRAT   PROC
+
+        LDX GEVNUM   ;BACTERION #
+
+*  SHOULD BACTERION! ATTACK PLAYER?
+
+        LDA STOP,X   ;IS BACTERION
+        BEQ :CONT    ;IN A COMA?
+        RTS          ;YES! QUIT!
+:CONT   LDA GEVCEL,X ;CELL IN TOW?
+        BMI :CONT2   ;YES! QUIT!
+        LDY NOPLAY   ;# OF PLAYERS.
+:CONT0  LDA STOP,Y   ;THIS PLR ICED?
+        BNE :CONT1   ;YES! CONTINUE!
+        LDA GEVX,X   ;IS X-COORD OF
+        SEC          ;PLAYER WITHIN
+        SBC GEVX,Y   ;ATTACKING
+        JSR ABS      ;RANGE?
+        CMP FRANGE   ;
+        BCS :CONT1   ;NO! QUIT!
+        LDA GEVY,X   ;IS Y-COORD OF
+        SEC          ;PLAYER WITHIN
+        SBC GEVY,Y   ;ATTACKING
+        JSR ABS      ;RANGE?
+        CMP FRANGE   ;
+        BCS :CONT1   ;NO! QUIT!
+        LDA GEVX,Y   ;PLR X-COORD IS
+        STA :TARX    ;TARGET X-COORD
+        LDA GEVY,Y   ;PLR Y-COORD IS
+        STA :TARY    ;TARGET Y-COORD
+        JSR LASERS   ;SCRAP PLAYER!
+        LDA #$01     ;KABOOM!!!
+        BNE STRAT2   ;
+:CONT1  DEY          ;CHECK NEXT
+        BPL :CONT0   ;PLAYER, IF ANY.
+:CONT2  LDA TARX,X   ;SAVE TARGET
+        STA :TARX    ;X-COORD.
+        LDA TARY,X   ;SAVE TARGET
+        STA :TARY    ;Y-COORD.
+        LDA #$00     ;
+STRAT2  STA ATTACK,X ;ATTACK STATUS
+
+*       FIND THE MARK
+
+*       AXIS TESTs
+
+STRAT3  LDA :TARX  ;IS THE TARGET
+        CMP GEVX,X ;(RELATIVE TO
+        BEQ AXIS5  ;ATTACKING
+        BCS AXIS7  ;BACTERION)
+
+        LDA :TARY  ;ON THE X
+        CMP GEVY,X ;OR Y AXIS? THAT
+        BNE AXIS4  ;IS THE QUESTION!
+
+        LDA #$04   ;WHO EVER HEARD
+        BNE QUIT   ;OF CENSORING
+
+AXIS4   BCS QUAD3  ;ASSEMBLY LAN-
+        BCC QUAD2  ;GUAGE LISTINGS?
+
+AXIS5   LDA :TARY  ;BACTERION! IS
+        CMP GEVY,X ;DEDICATED TO MY
+        BEQ EXIT   ;FRIENDS IN GOOD
+        BCS AXIS6  ;OLD TEANECK...
+
+        LDA #$00   ;IN CASE YOU
+        BEQ QUIT   ;PEOPLE DON'T
+
+AXIS6   LDA #$08   ;KNOW WHO YOU ARE,
+        BNE QUIT   ;HERE'S A LIST
+
+AXIS7   LDA :TARY  ;OF CODE-NAMES...
+        CMP GEVY,X ;SIR HEX
+        BNE AXIS8  ;THE QUAB RUNNER
+
+        LDA #12    ;THE SILICON
+        BNE QUIT   ;PIRATE
+
+AXIS8   BCS QUAD4  ;TAI-FIGHTER &
+        BCC QUAD1  ;HOME BOY ROGER D.
+
+*       FIRST QUADRANT
+
+QUAD1   JSR DELTAS ;
+        BEQ QUAD12 ;
+        BCC QUAD13 ;WE KNOW THE TAR-
+        LDA #13    ;GET IS IN THE
+        BNE QUIT   ;1st QUAD. DECIDE
+QUAD12  LDA #14    ;ON A DIRECTION.
+        BNE QUIT   ;(13,14,15)
+QUAD13  LDA #15    ;
+        BNE QUIT   ;BRANCH!
+
+*       SECOND QUADRANT
+
+QUAD2   JSR DELTAS ;
+        BEQ QUAD22 ;
+        BCC QUAD23 ;WE KNOW THE TAR-
+        LDA #03    ;GET IS IN THE
+        BNE QUIT   ;2nd QUAD. DECIDE
+QUAD22  LDA #02    ;ON A DIRECTION.
+        BNE QUIT   ;(1,2,3)
+QUAD23  LDA #01    ;
+        BNE QUIT   ;BRANCH!
+
+*       THIRD QUADRANT
+
+QUAD3   JSR DELTAS ;
+        BEQ QUAD32 ;
+        BCC QUAD33 ;WE KNOW THE TAR-
+        LDA #05    ;GET IS IN THE
+        BNE QUIT   ;3rd QUAD. DECIDE
+QUAD32  LDA #06    ;ON A DIRECTION.
+        BNE QUIT   ;(5,6,7)
+QUAD33  LDA #07    ;
+        BNE QUIT   ;BRANCH!
+
+*       FOURTH QUADRANT
+
+QUAD4   JSR DELTAS ;
+        BEQ QUAD42 ;
+        BCC QUAD43 ;WE KNOW THE TAR-
+        LDA #11    ;GET IS IN THE
+        BNE QUIT   ;4th QUAD. DECIDE
+QUAD42  LDA #10    ;ON A DIRECTION.
+        BNE QUIT   ;(9,10,11)
+QUAD43  LDA #09    ;
+        BNE QUIT   ;BRANCH!
+
+EXIT    LDA #$FF   ;TARGET REACHED
+
+QUIT    STA GEVDES,X ;SAVE DESIRED
+        RTS          ;DIRECTION. BYE!
+
+*       CALCULATE COORDINATE DELTAS
+
+DELTAS  LDA :TARY  ;TARGET Y-COORD.
+        SEC        ;SUBTRACT FROM
+        SBC GEVY,X ;BACTERION Y-CORD.
+        JSR ABS    ;ABSOLUTE VALUE.
+        STA :DELTA ;SAVE IT.
+        LDA :TARX  ;TARGET X-COORD.
+        SEC        ;SUBTRACT FROM
+        SBC GEVX,X ;BACTERION X-COORD.
+        JSR ABS    ;ABSOLUTE VALUE.
+        CMP :DELTA ;COMPARE TO Y
+        RTS        ;DELTA & RETURN.
+
+*       TURN ENEMY BACTERION!s
+
+TURN    DEC TURNT      ;TIME TO TURN?
+        BPL TRTS       ;NO! LATER!
+        LDX TYPES      ;RESTORE TURN
+        LDA TURNDB-1,X ;TIME FROM
+        STA TURNT      ;TURN DATABASE.
+        LDX #$04       ;HANDLE ALL.
+TURN0   LDA STOP,X     ;VESSEL ICED?
+        BNE PL4        ;YES! LATER!
+
+        LDA #$03  ;GET RANDOM AMOUNT
+        JSR RAND0 ;FOR DIRECTIONAL
+        TAY       ;TURN.
+        INY       ;
+
+        LDA GEVDES,X ;DISIRED DIRECTION.
+        CMP GEVDIR,X ;ACTUAL DIRECTION.
+        BEQ PL4      ;IF = QUIT!
+        BCS TURNG5   ;ACT. > DES.
+        JSR SUBDIR   ;SUB. THE TWO.
+        CMP #$08     ;IS DIFF. > 8?
+        BCS TURNG6   ;YES! BRANCH!
+TURNG4  TYA          ;INVERT AMOUNT
+        EOR #$FF     ;OF TURN (MAKE
+        TAY          ;IT NEGATIVE)
+        INY          ;
+        BMI TURNG6   ;BRANCH!
+TURNG5  JSR SUBDIR   ;SUB. THE TWO.
+        CMP #$08     ;IS DIFF. > 8?
+        BEQ TURNG6   ;DIFF = 8!
+        BCS TURNG4   ;DIFF > 8!
+TURNG6  TYA          ;ADD AMOUNT OF
+        CLC          ;TURN TO BAC-
+        ADC GEVDIR,X ;TERION'S DIR-
+        JSR WRAP     ;ECTION & SAVE.
+        STA GEVDIR,X ;
+
+PL4     DEX       ;TURN NEXT
+        CPX #$01  ;BACTERION!
+        BNE TURN0 ;IF ANY.
+TRTS    RTS       ;BOOGIE OUTTA HERE!
+
+SUBDIR  LDA GEVDES,X ;DESIRED
+        SEC          ;SUBTRACTED FROM
+        SBC GEVDIR,X ;ACTUAL
+        JMP ABS      ;ABSOLUTE VALUE.
+
+*       MOVE ENEMY BACTERION!s
+
+MOVE    LDX #$04       ;HANDLE ALL.
+MOVE0   DEC MOVET,X    ;TIME TO MOVE?
+        BPL MOVENX     ;NO! LATER!
+        LDY TYPES      ;RESTORE MOVE
+        LDA MOVEDB-1,Y ;TIMER.
+        LDY GEVCEL,X   ;CELL IN TOW?
+        BPL MOVE1      ;NO! MOVEFAST!
+        ASL A          ;YES! MOVE 4
+        ASL A          ;TIMES AS SLOW!
+MOVE1   STA MOVET,X    ;SAVE MOVE
+        JSR MOVSUB     ;TIMER & MOVE!
+MOVENX  DEX            ;HANDLE NEXT
+        CPX #$01       ;BACTERION!
+        BNE MOVE0      ;IF ANY.
+        RTS            ;OUTTA HERE!
+
+*       TRACK HEISTED CELLS
+
+TRACK   LDX #$04     ;HANDLE ALL.
+TRK0    LDA STOP,X   ;VESSEL ON ICE?
+        BNE TRK1     ;YES! BYPASS!
+
+        LDA GEVCEL,X ;CELL IN TOW?
+        BPL TRKTRK   ;NO! QUIT!
+        LDA GEVY,X   ;IF VESSEL ALL
+        CMP #15      ;THE WAY OFF-
+        BCC OFFSCR   ;SCREEN?
+        CMP #235     ;
+        BCC TRKTRK   ;NO! QUIT!
+
+* SUCCESSFUL HEISTING OF A CELL
+
+OFFSCR  INC GEVESC   ;INC. ESCAPEES
+        DEC TOTCEL   ;DEC. # OF CELLS
+        LDA #$01     ;HALT THIS
+        STA STOP,X   ;BACTERION.
+        BNE TRK1     ;BRANCH!
+
+TRKTRK  LDA ATTACK,X ;ATTCKING?
+        BNE TRK1     ;YES! SKIP!
+        LDA GEVDES,X ;AT TARGET?
+        BPL TRK1     ;YES! SKIP!
+
+        LDA ESCAPE,X ;ATTACKING PLR?
+        BEQ TRK1     ;YES! BRANCH!
+        STA TARY,X   ;NO! SET Y-TARGET
+
+        JSR PICKX    ;PICK RANDOM X-TARGET.
+        STA TARX,X   ;SAVE IT.
+        JSR PICKDR   ;GET A DIRECTION
+        LDA GEVCEL,X ;GIVE CELL A
+        ORA #$80     ;HEISTED STATUS.
+        STA GEVCEL,X ;
+
+TRK1    DEX      ;HANDLE NEXT
+        CPX #$01 ;BACTERION!
+        BNE TRK0 ;IF ANY.
+        RTS      ;GET LOST LOSER!
+
+* ACCUMULATOR ABSOLUTE VALUE FUNCTION
+
+ABS     BPL RABS
+        EOR #$FF
+        CLC
+        ADC #$01
+RABS    RTS
+
+*       DIRECTIONAL WRAP AROUND
+
+WRAP    BPL PWRAP ;DIRECTION > 0?
+        CLC       ;NO! ADD 16 TO IT.
+        ADC #16   ;
+        RTS       ;GET LOST LOSER!
+PWRAP   CMP #16   ;DIRECTION > 16?
+        BCC WRTS  ;NO! SUBTRACT 16
+        SEC       ;FROM IT.
+        SBC #16   ;
+WRTS    RTS       ;GET LOST LOSER!
+
+*       GENERAL MOVEMENT ANALYSIS
+
+MOVSUB  LDA STOP,X   ;COMATOSE?
+        BNE MOV1     ;YES! QUIT!
+        LDA GEVDES,X ;TARGET REACHED?
+        BMI MOV1     ;YES! QUIT!
+        LDY GEVDIR,X ;GET DIRECTION.
+        LDA DELX,Y   ;ADD X-COORD ADD
+        STA :ADDX    ;ON FOR GIVEN
+        CLC          ;DIRECTION.
+        ADC GEVX,X   ;
+        STA GEVX,X   ;SAVE IT.
+        LDA DELY,Y   ;ADD Y-COORD ADD
+        STA :ADDY    ;ON FOR GIVEN
+        CLC          ;DIRECTION.
+        ADC GEVY,X   ;
+        STA GEVY,X   ;SAVE IT.
+        LDA GEVCEL,X ;CELL IN TOW?
+        BPL MOV1     ;NO! QUIT!
+        AND #$7F     ;YES!
+        TAY          ;
+        LDA :ADDX    ;ADD X-COORD ADD
+        CLC          ;ON FOR GIVEN
+        ADC CELLNX,Y ;DIRECTION TO
+        STA CELLNX,Y ;CELL'S X-COORD.
+        LDA :ADDY    ;ADD Y-COORD ADD
+        CLC          ;ON FOR GIVEN
+        ADC CELLNY,Y ;DIRECTION TO
+        STA CELLNY,Y ;CELLS' Y-COORD.
+        LDA #$01     ;CELL MOVEMENT
+        STA CELLMV,Y ;STATUS SET.
+MOV1    RTS          ;SEE YA LATER...
+
+* VAPORIZE PLAYERS WITH DEADLY LASERS
+
+LASERS  DEC GEVFRE,X ;FIRE TIMER = 0?
+        BPL XITLSR   ;NO! QUIT!
+        LDA FIRETM   ;RESTORE FIRE
+        STA GEVFRE,X ;TIMER.
+        LDA LSRDIR,X ;ALREADY FIRING?
+        BNE XITLSR   ;YES! QUIT!
+        LDA GEVDES,X ;SAVE DESIRED
+        PHA          ;DIRECTION.
+        JSR STRAT3   ;GET LASER DIRECTON.
+        TAY          ;PUT IN Y-REG.
+        PLA          ;RESTORE DESIRED
+        STA GEVDES,X ;DIRECTION.
+        CPY #$FF     ;LASER AT TARGET?
+        BEQ XITLSR   ;YES! QUIT!
+        LDA LSRBSE,Y ;FINE TUNE LASER
+        STA LSRDIR,X ;DIRECTION.
+        LDA #$0A     ;LASER BOLT
+        STA LSRTME,X ;LIFETIME.
+        LDA #14      ;SET UP LASER
+        STA LSOUND   ;SOUND.
+XITLSR  RTS          ;JUMP IN A LAKE!
+
+*       LASER DIRECTIONAL FINE TUNING
+
+LSRBSE  DB 1,8,8,8,4,6,6,6,2
+        DB 7,7,7,3,5,5,5
+
+:TARX   DB      0 ;X-COORD TARGET
+:TARY   DB      0 ;Y-COORD TARGET
+:ADDX   DB      0 ;X-COORD ADD ON
+:ADDY   DB      0 ;Y-COORD ADD ON
+:DELTA  DB      0 ;TAR. Y - ACT. Y
+
+*       X-COORD DIRECTIONAL ADD ONs
+
+DELX    DB +0,-1,-2,-2,-2,-2,-2,-1
+        DB +0,+1,+2,+2,+2,+2,+2,+1
+
+*       Y-COORD DIRECTIONAL ADD ONs
+
+DELY    DB -2,-2,-2,-1,+0,+1,+2,+2
+        DB +2,+2,+2,+1,+0,-1,-2,-2
+
+*       TURN DATABASE
+
+TURNDB  DB 0,0,0,0,0,0,0
+
+*       MOVEMENT DATABASE
+
+MOVEDB  DB 0,0,0,0,0,0,0
+
+
+ TITLE 'BACTERION! PM DRAW ROUTINE'
+
+DRAW    PROC
+
+        LDA #$04       ;HANDLE ALL.
+        STA COUNT      ;VESSELS (0-4)
+DRAW1   LDX COUNT      ;VESSEL #.
+        LDY TYPE,X     ;TYPE (0-7).
+        LDA PHASE,X    ;SHAPE PHASE.
+        CMP INDEX+1,Y  ;PHASE EXCEE-
+        BCC DRAW3      ;DED?
+DRAW2   LDA INDEX,Y    ;YES! CORRECT
+        STA PHASE,X    ;PHASE.
+DRAW3   CMP INDEX,Y    ;PHASE EXCEE-
+        BCC DRAW2      ;DED?
+        ASL A          ;NO! GET OFF-
+        TAY            ;SET TO DATA
+        LDA OFFSET,Y   ;FOR THIS
+        STA DRWLO      ;PHASE.
+        LDA OFFSET+1,Y ;
+        STA DRWLO+1    ;
+        LDA COUNT      ;FIND WHERE TO
+        ASL A          ;PLACE PHASE
+        TAY            ;DATA. (DEP-
+        LDA PLBSE,Y    ;ENDS ON WHICH
+        STA PLLO       ;VESSEL # WE
+        LDA PLBSE+1,Y  ;ARE DRAWING).
+        STA PLLO+1     ;
+        LDA #$07       ;PREPARE TO
+        STA PTR1       ;READ 8 BYTES.
+        CLC            ;FIND OUT
+        ADC GEVY,X     ;WHERE TO PUT
+        STA PTR2       ;DATA.
+DRAW4   LDY PTR1       ;GET PHASE
+        LDA (DRWLO),Y  ;DATA.
+        LDY PTR2       ;PUT INTO PM
+        STA (PLLO),Y   ;LOCATIONS.
+        DEC PTR2       ;RESET
+        DEC PTR1       ;POINTERS.
+        BPL DRAW4      ;ALL DONE?
+        LDA #$07       ;YES! SET UP
+        STA COUNT2     ;FOR 8 BYTES.
+DRAW5   LDX COUNT      ;BEGIN ERASING
+        LDA GEVY,X     ;DATA AT TOP
+        LDX COUNT2     ;& BOTTOM OF
+        CLC            ;VESSEL. THIS
+        ADC ERADD,X    ;ACCOUNTS FOR
+        TAY            ;WHEN A VESSEL
+        LDA #$00       ;MOVES VERTI-
+        STA (PLLO),Y   ;CALLY AS WE
+        DEC COUNT2     ;MUST PRE-
+        BPL DRAW5      ;VENT DATA
+        DEC COUNT      ;OVERLAP.
+        BPL DRAW1      ;YEAH SO WHAT!
+
+DRAW6   DEC PHTIME ;DEC PHASE TIMER.
+        BPL DRAW7  ;QUIT IF NOT 0.
+        LDA #$04   ;RESET PHASE TIMER
+        STA PHTIME ;& STORE.
+
+        TAX         ;HANDLE ALL (0-4)
+PHS4    CPX #$02    ;A BACTERION?
+        BCS PHS5    ;YES! SKIP IT!
+        LDA TYPE,X  ;IS IT EXPLODING?
+        CMP #$07    ;
+        BNE PHS7    ;NO! SKIP IT!
+PHS5    LDA PHASE,X ;
+        CMP #47     ;(INDEX+8)-1
+        BEQ PHS7    ;
+        INC PHASE,X ;INC VESSEL PHASE
+        CMP #46     ;(INDEX+8)-2
+        BNE PHS7    ;
+        CPX #$02    ;IS VESSEL A
+        BCC PHS7    ;PLAYER?
+        INC GEVESC  ;NO! INC # OF ESCAPES
+PHS7    DEX         ;MOVE ON TO
+        BPL PHS4    ;NEXT...
+
+DRAW7   RTS ;TIME TO BOOGIE...
+
+COUNT   DB 0 ;BYTE DRAW COUNTER
+COUNT2  DB 0 ;BYTE DRAW COUNTER
+PTR1    DB 0 ;POINTER PHASE DATA
+PTR2    DB 0 ;POINTER TO PM AREA
+PHTIME  DB 3 ;VESSEL PHASE TIMER
+
+*       TOP/BOTTOM ERASURE OFFSETS
+
+ERADD   DB -4,-3,-2,-1,+8,+9,+10,+11
+
+*       INDEX TO VESSEL PHASE DATA
+
+INDEX   DB 0,16,20,24,28,31,35,39,48
+
+*       LO/HI BYTES TO PM AREA
+
+PLBSE   DW PLAY0
+        DW PLAY1
+        DW PLAY2
+        DW PLAY3
+        DW MISS
+
+*       OFFSET TO VESSEL PHASE DATA
+
+OFFSET  DW :ROT00       ;0
+        DW :ROT01
+        DW :ROT02
+        DW :ROT03
+        DW :ROT04
+        DW :ROT05
+        DW :ROT06
+        DW :ROT07
+        DW :ROT08
+        DW :ROT09
+        DW :ROT10
+        DW :ROT11
+        DW :ROT12
+        DW :ROT13
+        DW :ROT14
+        DW :ROT15
+
+        DW :GEV10       ;16
+        DW :GEV11
+        DW :GEV12
+        DW :GEV11
+
+        DW :GEV20       ;20
+        DW :GEV21
+        DW :GEV22
+        DW :GEV21
+
+        DW :GEV30       ;24
+        DW :GEV31
+        DW :GEV32
+        DW :GEV31
+
+        DW :GEV40       ;28
+        DW :GEV41
+        DW :GEV42
+
+        DW :GEV50       ;31
+        DW :GEV51
+        DW :GEV52
+        DW :GEV51
+
+        DW :GEV60       ;35
+        DW :GEV61
+        DW :GEV62
+        DW :GEV63
+
+        DW :EXP0        ;39
+        DW :EXP1
+        DW :EXP2
+        DW :EXP3
+        DW :EXP4
+        DW :EXP5
+        DW :EXP6
+        DW :EXP7
+        DW :EXP8
+
+                        ;48
+
+*       TANK ROTATION 0
+
+:ROT00  DB $10,$10,$10,$38
+        DB $54,$82,$44,$44
+
+*       TANK ROTATION 1
+
+:ROT01  DB $20,$20,$10,$1E
+        DB $19,$21,$20,$10
+
+*       TANK ROTATION 2
+
+:ROT02  DB $80,$40,$20,$1F
+        DB $19,$10,$10,$18
+
+*       TANK ROTATION 3
+
+:ROT03  DB $00,$00,$C6,$39
+        DB $18,$10,$10,$0C
+
+*       TANK ROTATION 4
+
+:ROT04  DB $04,$0B,$10,$F0
+        DB $10,$0B,$04,$00
+
+*       TANK ROTATION 5
+
+:ROT05  DB $0C,$10,$10,$18
+        DB $39,$C6,$00,$00
+
+*       TANK ROTATION 6
+
+:ROT06  DB $18,$10,$10,$19
+        DB $1F,$20,$40,$80
+
+*       TANK ROTATION 7
+
+:ROT07  DB $10,$20,$21,$19
+        DB $1E,$10,$20,$20
+
+*       TANK ROTATION 8
+
+:ROT08  DB $44,$44,$82,$44
+        DB $38,$10,$10,$10
+
+*       TANK ROTATION 9
+
+:ROT09  DB $08,$04,$84,$98
+        DB $78,$08,$04,$04
+
+*       TANK ROTATION 10
+
+:ROT10  DB $18,$08,$08,$98
+        DB $F8,$04,$02,$01
+
+*       TANK ROTATION 11
+
+:ROT11  DB $30,$08,$08,$18
+        DB $9C,$63,$00,$00
+
+*       TANK ROTATION 12
+
+:ROT12  DB $20,$D0,$08,$0F
+        DB $08,$D0,$20,$00
+
+*       TANK ROTATION 13
+
+:ROT13  DB $00,$00,$63,$1C
+        DB $18,$08,$08,$30
+
+*       TANK ROTATION 14
+
+:ROT14  DB $01,$02,$04,$F8
+        DB $98,$08,$08,$18
+
+*       TANK ROTATION 15
+
+:ROT15  DB $04,$04,$08,$78
+        DB $98,$84,$04,$08
+
+*       BACTERION! #1
+
+:GEV10  DB $18,$00,$24,$81
+        DB $81,$24,$00,$18
+
+:GEV11  DB $18,$42,$24,$81
+        DB $81,$24,$42,$18
+
+:GEV12  DB $99,$42,$24,$81
+        DB $81,$24,$42,$99
+
+*       BACTERION! #2
+
+:GEV20  DB $00,$00,$3C,$24
+        DB $24,$3C,$00,$00
+
+:GEV21  DB $00,$66,$42,$18
+        DB $18,$42,$66,$00
+
+:GEV22  DB $C3,$81,$00,$18
+        DB $18,$00,$81,$C3
+
+*       BACTERION! #3
+
+:GEV30  DB $3C,$42,$A5,$81
+        DB $81,$A5,$42,$3C
+
+:GEV31  DB $00,$18,$24,$42
+        DB $42,$24,$18,$00
+
+:GEV32  DB $00,$00,$18,$3C
+        DB $3C,$18,$00,$00
+
+*       BACTERION! #4
+
+:GEV40  DB $00,$00,$18,$24
+        DB $24,$18,$00,$00
+
+:GEV41  DB $00,$18,$00,$5A
+        DB $5A,$00,$18,$00
+
+:GEV42  DB $18,$00,$18,$A5
+        DB $A5,$18,$00,$18
+
+*       BACTERION! #5
+
+:GEV50  DB $20,$20,$E4,$18
+        DB $18,$27,$04,$04
+
+:GEV51  DB $00,$24,$66,$18
+        DB $18,$66,$24,$00
+
+:GEV52  DB $04,$04,$27,$18
+        DB $18,$E4,$20,$20
+
+*       BACTERION! #6
+
+:GEV60  DB $0C,$40,$90,$25
+        DB $25,$88,$40,$0C
+
+:GEV61  DB $18,$00,$99,$A1
+        DB $04,$18,$42,$24
+
+:GEV62  DB $30,$02,$19,$84
+        DB $A0,$19,$02,$30
+
+:GEV63  DB $24,$42,$08,$24
+        DB $A5,$91,$00,$18
+
+*       DETONATION
+
+:EXP0   DB $00,$00,$00,$18
+        DB $18,$00,$00,$00
+
+:EXP1   DB $00,$00,$08,$38
+        DB $1C,$10,$00,$00
+
+:EXP2   DB $00,$08,$08,$78
+        DB $1E,$10,$10,$00
+
+:EXP3   DB $08,$08,$2C,$E0
+        DB $07,$34,$10,$10
+
+:EXP4   DB $08,$4A,$24,$C0
+        DB $03,$24,$52,$10
+
+:EXP5   DB $89,$42,$24,$80
+        DB $01,$24,$42,$91
+
+:EXP6   DB $81,$42,$00,$00
+        DB $00,$00,$42,$81
+
+:EXP7   DB $81,$00,$00,$00
+        DB $00,$00,$00,$81
+
+:EXP8   DB $00,$00,$00,$00
+        DB $00,$00,$00,$00
+
+*TYPE   - TYPE OF TANK BEING DRAWN
+*         0 - PLAYERS # 1 & 2
+*       1-6 - DEVs 1,2,3,4,5,6
+*         7 - DETONATION SEQUENCE
+*PHASE  - PHASE # OF BACTERION!s
+*      0-15 - PLAYERS # 1 & 2
+*     16-19 - BACTERION! # 1
+*     20-23 - BACTERION! # 2
+*     24-27 - BACTERION! # 3
+*     28-30 - BACTERION! # 4
+*     31-34 - BACTERION! # 5
+*     35-38 - BACTERION! # 6
+*     39-48 - EXPLOSION SEQUENCE
+
+ TITLE 'BACTERION TITLE SCREEN'
+
+        PROC
+
+*       BACTERION!
+
+TITLE   DB 0,0,0,0,0
+        DB 098,097,099,116,101
+        DB 114,105,111,110,065
+        DB 0,0,0,0,0
+
+*       THE PLAGUE OF 2369
+
+TITLE2  DB 000,180,168,165,00,176,172
+        DB 161,167,181,165,00,175,166
+        DB 00,210,211,214,217,00
+
+*       TEAM SCORE
+
+TEAM1   DB 0,0,0,0,0
+        DB 180,165,161,173,000
+        DB 179,163,175,178,165
+        DB 0,0,0,0,0
+
+TEAM2   DB 0,0,0,0,0
+        DB 0,0,0,0,0
+        DB 0,0,0,0,0
+        DB 0,0,0,0,0
+
+PLAYR1  DB 0,0,0,0,0
+        DB 0,0,0,0,0
+        DB 0,0,0,0,0
+        DB 0,0,0,0,0
+
+PLAYR2  DB 0,0,0,0,0
+        DB 0,0,0,0,0
+        DB 0,0,0,0,0
+        DB 0,0,0,0,0
+
+*       BY
+
+NAME1   DB 00,00,00,00,00
+        DB 00,00,00,00,34
+        DB 57,00,00,00,00
+        DB 00,00,00,00,00
+
+*       KYLE PEACOCK
+
+NAME2   DB 0,0,0,0
+        DB 235,249,236,229,000,240
+        DB 229,225,227,239,227,235
+        DB 0,0,0,0
+
+*       WITH
+
+NAME3   DB 0,0,0,0,0,0,0,0
+        DB 55,41,52,40
+        DB 0,0,0,0,0,0,0,0
+
+*       TOM HUDSON
+
+NAME4   DB 0,0,0,0,0
+        DB 244,239,237,000,232
+        DB 245,228,243,239,238
+        DB 0,0,0,0,0
+
+*       ANALOG COMPUTING
+
+NAME5   DB $00,$00,$A1,$AE,$A1
+        DB $AC,$AF,$A7,$00,$A3
+        DB $AF,$AD,$B0,$B5,$B4
+        DB $A9,$AE,$A7,$00,$00
+
+
+ TITLE 'JOYSTICK READING'
+
+STICKS  PROC
+
+        LDX NOPLAY   ;# OF PLAYERS
+
+ACT4    LDA STOP,X   ;IS PLAYER DEAD?
+        BEQ ACT5     ;NO, CONTINUE.
+        DEC STOP,X   ;DEC. DEATH TIME
+        BNE NXTACT   ;& CONTINUE
+        JSR SETPLR   ;IF DEATH TIME=0
+        JMP NXTACT   ;REINCARNATE
+
+ACT5    JSR MOVPLR   ;MOVE PLAYER
+
+        DEC TURNIT,X ;DEC. TURN TIME
+        BPL NXTACT   ;IF <> 0 CONT.
+        LDA #$03     ;RESET TURN
+        STA TURNIT,X ;TIME & STORE.
+
+        LDY STICK0,X ;READ JOYSTICK.
+        LDA GEVDIR,X ;UPDATE DIRECT-
+        CLC          ;ION ACCORDING
+        ADC DRHASH,Y ;TO JOYSTICK.
+        JSR WRAP     ;TEST FOR WRAP
+        STA GEVDIR,X ;AROUND &
+        STA PHASE,X  ;SAVE.
+
+NXTACT  DEX          ;HANDLE NEXT
+        BPL ACT4     ;PLAYER.
+        RTS          ;ALL DONE...
+
+*       GENERAL MOVEMENT ROUTINE
+
+MOVPLR  DEC SPEED,X  ;TIME TO MOVE?
+        BPL RTSMOV   ;NO, CONTINUE.
+        LDA STICK0,X ;YES-READ STICK.
+        CMP #14      ;FORWARD MOTION.
+        BEQ :MOV4    ;
+        CMP #10      ;FORWARD MOTION.
+        BEQ :MOV4    ;
+        CMP #06      ;FORWARD MOTION.
+        BNE :MOV5    ;
+:MOV4   DEC CSPEED,X ;DEC. MOTION
+        JMP :MOV6    ;TIMER.
+:MOV5   INC CSPEED,X ;INC. MOTION
+:MOV6   LDY CSPEED,X ;TIMER.
+        LDA REHASH,Y ;DETECT OVERFLOW
+        STA CSPEED,X ;& CORRECT (IF
+        STA SPEED,X  ;ANY.) THEN SAVE
+        LDA SPEED,X  ;MOTION TIMER.
+        CMP DRHASH-1 ;
+        BEQ RTSMOV   ;
+        JSR MOVSUB   ;MOVE TO CORRECT
+RTSMOV  RTS          ;ALL DONE...
+
+TURNIT  DB 0,0  ;PLAYERS' TURN TIMER.
+
+*       SPEED LIMITATION DATABASE
+
+REHASH  DB 2,2,2,3,4,5,6,7,8,8,8
+
+*       JOYSTICK/DIRECTION ADD ONS
+
+DRHASH  DB 0,0,0,0,0,-1,-1,-1
+        DB 0,+1,+1,+1,0,0,0,0
+
+
+ TITLE 'COLLISION DETECTION'
+
+COLLIDE PROC
+
+*       SHIP COLLISION
+
+        LDX NOPLAY ;# OF PLAYERS
+COL5    LDA STOP,X ;IS THIS PLR ICED?
+        BNE COLXX  ;YES! MOVE ALONG.
+        LDA #$01   ;NO! CHECK FOR
+        STA IDIE   ;COLLISION...
+        LDA P0PL,X ;
+        AND #$02   ;PLR/PLR
+        BEQ COL7   ;NO COLLISION.
+        JSR KILLME ;SMASH! BANG!
+COL7    INC IDIE   ;CHECK FOR ANOTHER
+        LDA P0PL,X ;COLLISION...
+        AND #$04   ;PLR/BACTERION 1
+        BEQ COL8   ;NO COLLISION.
+        JSR KILLME ;OUCH! CRASH!
+COL8    INC IDIE   ;CHECK FOR ANOTHER
+        LDA P0PL,X ;COLLISION...
+        AND #$08   ;PLR/BACTERION 2
+        BEQ COL9   ;NO COLLISION.
+        JSR KILLME ;DING! DONG!
+COL9    INC IDIE   ;CHECK FOR ANOTHER
+        LDY #$03   ;COLLISION
+COL10   TXA        ;W/MISSILES...
+        CLC        ;
+        ADC #$01   ;
+        AND M0PL,Y ;PLR/BACTERION 3
+        BEQ COL11  ;NO COLLISION...
+        JSR KILLME ;BING! ZAP!
+COL11   DEY        ;CONTINUE CHECKING
+        BPL COL10  ;
+
+*       PLAYERS TOUCHING PODS?
+
+        DEC PODTME   ;TIME TO CHECK?
+        BPL COL13    ;NO! GO AWAY!
+        LDA #$03     ;RESET POD TIMER
+        STA PODTME   ;TO GO AGAIN.
+        LDA P0PF,X   ;SMASHED INTO
+        AND #$01     ;POD PLAYFIELD?
+        BEQ COL13    ;NO! GO AWAY!
+        LDA #$02     ;YES! ROTATE
+        JSR RAND0    ;RANDOMLY.
+        LDY RANDOM   ;ROTATE RIGHT
+        BPL COL12    ;OR LEFT?
+        EOR #$FF     ;ROTATE RIGHT.
+        CLC          ;(CLOCKWISE)
+        ADC #$01     ;
+COL12   CLC          ;ROTATE LEFT.
+        ADC GEVDIR,X ;(COUNTERCLOCK)
+        JSR WRAP     ;CHECK FOR WRAP
+        STA GEVDIR,X ;AROUND & SAVE
+        STA PHASE,X  ;NEW ROTATION.
+
+*       PLAYER HIT BY LASER?
+
+COL13   LDA P0PF,X ;HAS PLAYER
+        AND #$02   ;COLLIDED WITH
+        BEQ COLXX  ;LASER PLAYFIELD?
+        STX IDIE   ;YES! YES! YES!
+        JSR KILLME ;VAPORIZE HIM!!!
+COLXX   DEX        ;CHECK NEXT
+        BPL COL5   ;PLAYER...
+
+        STA HITCLR ;CLEAR COLLISIONS.
+
+        RTS  ;GO TO DARK SIDE OF MOON.
+
+*       INSERT DEATH VALUE
+
+KILLME  STY YHOLD    ;SAVE Y-REG.
+        LDY IDIE     ;GET WHO DIES!
+        LDA STOP,Y   ;ARE THEY AL-
+        BNE :KILLX   ;READY DEAD?
+        TXA          ;NO! PREPARE
+        TAY          ;TO VAPORIZE!
+        JSR ZAPIT    ;ASHES TO ASHES!
+        LDY IDIE     ;VAPORIZE OTHER
+        JSR ZAPIT    ;VESSEL AS WELL!
+        INC NOKILL,X ;INC # OF KILLS!
+:KILLX  LDY YHOLD    ;RESTORE Y-REG.
+        RTS          ;GET LOST!!!
+
+*       CHANGE TO DEATH STATUS
+
+ZAPIT   LDA STOP,Y ;IS THIS VESSEL
+        BNE ZAPRTS ;ALREADY ICED?
+        LDA #07    ;NO! START VESSEL
+        STA TYPE,Y ;DETONATION!!!
+        LDA #120   ;GIVE THEM A
+        STA STOP,Y ;DEATH STATUS.
+        LDA #00    ;TURN OFF BACTER-
+        STA LSOUND ;ION! LASER SOUND.
+        LDA #66    ;START UP DETONAT-
+        STA XSOUND ;ION SOUND.
+        RTS        ;BEAT IT!
+ZAPRTS  PLA        ;PREMATURE
+        PLA        ;RETURN. (PACK
+        LDY YHOLD  ;YOUR BAGS AND
+        RTS        ;HIT THE ROAD!)
+
+IDIE    DB      0  ;VESSEL # TO DIE.
+YHOLD   DB      0  ;Y-REG. STORAGE.
+PODTME  DB      0  ;ROTATION TIMER.
+
+
+ TITLE 'FIRE PLAYER PROJECTILES'
+
+SHOOT   PROC
+
+        JSR FIRST   ;DO THIS FIRST.
+        JMP SECOND  ;DO THIS SECOND.
+
+*       INITIALIZE PROJECTILES
+
+FIRST   LDX NOPLAY   ;# OF PLAYERS
+SHOOT5  LDA STOP,X   ;IS PLAYER ICED?
+        BNE XSHOOT   ;YES! SKIP HIM!
+        LDA FDELAY,X ;OK TO FIRE?
+        BEQ SHOOT6   ;YES! CONTINUE.
+        DEC FDELAY,X ;NO! DEC TIMER.
+        JMP XSHOOT   ;SKIP TO NEXT.
+
+SHOOT6  LDA NOBULL,X ;ALL BULLETS
+        CMP #$04     ;FIRED ALREADY?
+        BCS XSHOOT   ;YES! SKIP HIM.
+        LDA TRIG0,X  ;BUTTON PRESSED?
+        BNE XSHOOT   ;NO! SKIP HIM.
+        INC NOBULL,X ;INC # BULLETS.
+        LDA #$07     ;MAKE CANNON
+        STA CSOUND   ;FIRING SOUND.
+        LDA #$03     ;SET UP FIRING
+        STA FDELAY,X ;DELAY.
+        LDY #12      ;FIND AN UNUSED
+SHOOT7  LDA BULLET,Y ;ARRAY SLOT FOR
+        BMI SHOOT8   ;A PROJECTILE.
+        DEY          ;DON'T STOP
+        BNE SHOOT7   ;UNTIL YOU DO!!!
+SHOOT8  STY BSLOT    ;ARRAY SLOT #.
+        TXA          ;SAVE WHICH PLR
+        STA BULLET,Y ;# WHO FIRED.
+        LDY GEVDIR,X ;GET STARTING
+        TYA          ;POINT OF PRO-
+        PHA          ;JECTILE ACCORD-
+        LDA DELX,Y   ;ING TO PLAYER'S
+        ASL A        ;ANGLE OF ROT-
+        CLC          ;ATION & (OF
+        ADC GEVX,X   ;COURSE)
+        SEC          ;PLAYSER'S
+        SBC #44      ;X & Y COORDS.
+        LDY BSLOT    ;
+        STA GEVX,Y   ;YUP!
+        PLA          ;
+        STA GEVDIR,Y ;THAT'S WHAT ALL
+        TAY          ;THIS CODE DOES.
+        LDA DELY,Y   ;
+        ASL A        ;I DARE ANYONE
+        CLC          ;TO COME UP WITH
+        ADC GEVY,X   ;A BETTER PUBLIC
+        SEC          ;DOMAIN PROGRAM.
+        SBC #$1C     ;(EXCEPT TOM
+        LDY BSLOT    ;HUDSON...)
+        STA GEVY,Y   ;SO THERE!!!
+
+XSHOOT  DEX        ;MOVE ALONG TO
+        BPL SHOOT5 ;NEXT PLAYER.
+        RTS        ;BEGONE!!!
+
+*       MOVE PROJECTILES
+
+SECOND  LDX #12      ;HANDLE ALL.
+TRAV5   LDA BULLET,X ;ANYBODY OWN
+        BMI XTRAV    ;THIS BULLET?
+
+        JSR MOVSUB   ;YES! MOVE IT!
+
+        LDA GEVX,X     ;OUT OF
+        CMP #162       ;BOUNDS?
+        BCS :DEACT     ;YES! BYE!
+        STA CELLNX+5,X ;
+        LDA GEVY,X     ;OUT OF
+        CMP #192       ;BOUNDS?
+        BCS :DEACT     ;YES! LATER!
+        STA CELLNY+5,X ;
+
+        LDY #$04   ;IS THIS BULLET
+TRAV6   LDA STOP,Y ;WITHIN RANGE OF
+        BNE TRAV7  ;ANY OF THE
+        LDA GEVX,X ;BACTERIONS!
+        CLC        ;
+        ADC #48    ;LETHAL RANGE
+        SEC        ;IS WITHIN
+        SBC GEVX,Y ;8 UNITS ON
+        CMP #$09   ;EITHER X OR Y
+        BCS TRAV7  ;AXIS.
+        LDA GEVY,X ;
+        CLC        ;
+        ADC #$20   ;
+        SEC        ;
+        SBC GEVY,Y ;
+        CMP #$09   ;
+        BCS TRAV7  ;
+
+        JSR ZAPIT  ;EXTERMINATE!!!
+
+        STX :XHOLD     ;SAVE X-REG.
+        LDA BULLET,X   ;FIND BULLET
+        TAX            ;OWNER & INC.
+        INC NOKILL,X   ;# OF KILLS.
+        LDX :XHOLD     ;RES. X-REG.
+
+:DEACT  STX :XHOLD     ;SAVE X-REG.
+        LDA BULLET,X   ;GET BULLET
+        TAX            ;OWNER & DEC.
+        DEC NOBULL,X   ;# OF BULLETS.
+        LDX :XHOLD     ;RES. X-REG.
+        LDA #$FF       ;DEACTIVATE
+        STA BULLET,X   ;BULLET. (NO
+        STA CELLNX+5,X ;OWNER OR X,
+        STA CELLNY+5,X ;Y COORDS)
+        BNE TRAV8      ;GET OUT!
+
+TRAV7   DEY       ;CHECK FOR COLL-
+        CPY #$01  ;ISION WITH NEXT
+        BNE TRAV6 ;BACTERION!
+
+TRAV8   LDA #$01       ;BULLET LIVES.
+        STA CELLMV+5,X ;MOVE IT.
+
+XTRAV   DEX       ;MOVE NEXT BULLET.
+        CPX #$04  ;OUT OF BULLETS TO
+        BNE TRAV5 ;MOVE?
+        RTS       ;YES! LATER Y'ALL!
+
+BSLOT   DB      0 ;UNUSED ARRAY SLOT.
+:XHOLD  DB      0 ;X-REG. TEMP STORE.
+
+ TITLE 'BACTERION! GRAPHICS PLOTTER'
+
+*       ----------------------
+*       GR. 7+ PLOTTER ROUTINE
+*       COURTESY OF TOM HUDSON
+*       ----------------------
+
+PLOTTER PROC
+
+*       POINT PLOTTER ROUTINE
+
+PLOTPT  LDX PLOTY    ;Y-COORD.
+        CPX #193     ;OFFSCREEN?
+        BCS :PBYE    ;YES! QUIT!
+        LDA LOTBL,X  ;NO! GET LO
+        STA LO       ;& HI BYTE
+        LDA HITBL,X  ;OF SCREEN
+        STA HI       ;RAM AREA.
+        LDA PLOTX    ;X-COORD.
+        CMP #160     ;OFFSCREEN?
+        BCS :PBYE    ;YES! QUIT!
+        AND #3       ;PLOT INDEX
+        TAX          ;PLACE IN X
+        LDA PLOTX    ;GET PLOTX &
+        LSR A        ;DIVIDE
+        LSR A        ;BY 4.
+        STA YOFSET   ;
+        LDY COLOR    ;GET COLOR &
+        LDA :BMSK2,X ;MASK OFF
+        AND :COLRS,Y ;PIXEL POS.
+        STA HOLD     ;SAVE IT.
+        LDA :BMSK1,X ;MASK OFF PIXEL
+        LDY YOFSET   ;OF ADDR TO BE
+        AND (LO),Y   ;ALTERED.
+        ORA HOLD     ;SET PLOT BITS
+        STA (LO),Y   ;& STORE.
+:PBYE   RTS          ;ALL DONE...
+
+*       DRAW FROM/TO ROUTINE
+
+DRAWTO  LDA DRAWY  ; IS DRAWY
+        CMP PLOTY  ;> PLOTY?
+        BCC :YMNUS ;NO!
+        SEC        ;SUB. PLOTY
+        SBC PLOTY  ;DROM DRAWY &
+        STA DELTAY ;SAVE DIFF.
+        LDA #1     ;Y INC. = 1.
+        STA INCY   ;(DOWN)
+        BNE :XVEC  ;BRANCH!
+:YMNUS  LDA PLOTY  ;SUB. DRAWY
+        SEC        ;FROM PLOTY &
+        SBC DRAWY  ;SAVE DIFF.
+        STA DELTAY ;
+        LDA #255   ;Y INC. = -1.
+        STA INCY   ;(UP)
+:XVEC   LDA DRAWX  ;IS DRAWX
+        CMP PLOTX  ;> PLOTX?
+        BCC :XMNUS ;NO!
+        SEC        ;SUB. DRAWX
+        SBC PLOTX  ;FROM PLOTX
+        STA DELTAX ;& SAVE DIFF.
+        LDA #1     ;X INC. IS 1
+        STA INCX   ;(RIGHT)
+        BNE :VCSET ;BRANCH!
+:XMNUS  LDA PLOTX  ;SUB. DRAWX
+        SEC        ;FROM PLOTX
+        SBC DRAWX  ;& SAVE DIFF.
+        STA DELTAX ;
+        LDA #255   ;X INC IS -1
+        STA INCX   ;(LEFT)
+:VCSET  LDA #0     ;ZERO OUT
+        STA ACCY   ;Y-ACC.
+        STA ACCX   ;X-ACC.
+        LDA DELTAX ;IS DELTAX >
+        CMP DELTAY ;DELTAY?
+        BCC :YMAX  ;NO!
+        STA COUNTR ;SAVE DELTAX
+        STA ENDPT  ;IN COUNTR. ENDPT.
+        LSR A      ;DIV. BY 2 &
+        STA ACCY   ;STORE IN Y-ACC.
+        JMP :DRAWG ;START DRAW
+:YMAX   LDA DELTAY ;DELTAY LARGER.
+        STA COUNTR ;STORE IT IN
+        STA ENDPT  ;COUNTR, ENDPT.
+        LSR A      ;DIV BY 2 &
+        STA ACCX   ;STORE IN X-ACC.
+
+*       BEGIN DRAWING TO DESTINATION
+
+:DRAWG  LDA COUNTR ;IF COUNTR=0...
+        BEQ :DRAWE ;NO DRAW!
+:BEGIN  LDA ACCY   ;ADD DELTAY
+        CLC        ;TO Y-ACC.
+        ADC DELTAY ;
+        BCS :OVER1 ;
+        STA ACCY   ;
+        CMP ENDPT  ;AT ENDPNT YET?
+        BCC :BEGN2 ;NO, GO DO X.
+        LDA ACCY   ;SUB. ENDPT
+        SEC        ;FROM Y-ACC.
+:OVER1  SBC ENDPT  ;
+        STA ACCY   ;
+        LDA PLOTY  ;AND INC. THE
+        CLC        ;Y. POSITION.
+        ADC INCY   ;
+        STA PLOTY  ;
+:BEGN2  LDA ACCX   ;ADD DELTAX TO
+        CLC        ;X-ACC.
+        ADC DELTAX ;
+        BCS :OVER2 ;
+        STA ACCX   ;
+        CMP ENDPT  ;AT ENDPT. YET?
+        BCC :PLOTT ;NO, GO PLOT.
+        LDA ACCX   ;SUB. ENDPT
+        SEC        ;FROM X-ACC.
+:OVER2  SBC ENDPT  ;
+        STA ACCX   ;
+        LDA PLOTX  ;AND INC.
+        CLC        ;PLOT X
+        ADC INCX   ;
+        STA PLOTX  ;
+:PLOTT  JSR PLOTPT ;PLOT POINT.
+        DEC COUNTR ;MORE TO DRAW?
+        BNE :BEGIN ;YES!
+:DRAWE  RTS        ;NO, ALL DONE...
+
+*       DRAW AN INDIVIDUAL CELL
+
+SHOCEL  LDX CELNUM   ;CELL # TO DRAW
+        LDA #$00     ;SPECIFY COLOR
+        STA CELLMV,X ;& DON'T UPDATE
+        STA COLOR    ;AGAIN.
+        LDA CELLOX,X ;GET OLD X-COORD
+        STA PLOTX    ;& STORE
+        LDA CELLOY,X ;GET OLD Y-COORD
+        STA PLOTY    ;& STORE
+        LDA #$00     ;SPECIFY OBJECT
+        JSR OBJECT   ;& DRAW IT...
+        LDX CELNUM   ;CELL # TO DRAW
+        LDA CELLNX,X ;GET NEW X-COORD
+        STA PLOTX    ;& STORE
+        STA CELLOX,X ;
+        LDA CELLNY,X ;GET NEW Y-COORD
+        STA PLOTY    ;& STORE
+        STA CELLOY,X ;
+        LDA #1       ;SPECIFY COLOR
+        STA COLOR    ;OF CELL
+        LDA #0       ;SPECIFY OBJECT
+        JSR OBJECT   ;& DRAW IT...
+        RTS          ;ALL DONE...
+
+*       CELL MOVER
+
+OBJECT  ASL A        ;MULT OBJECT
+        ASL A        ;INDEX BY 0
+        ASL A        ;TO POINT INTO
+        STA SHAPIX   ;SHAPE TABLE
+        LDA #8       ;8 LINES MAX
+        STA SHAPCT   ;IN SHAPE
+DOBLP   LDX SHAPIX   ;GET LINE #
+        LDY OBJDIR,X ;& ITS DIRECTION
+        BMI ENDOBJ   ;IF $FF ALL DONE
+        LDA PXINC,Y  ;GET X INCREMENT
+        STA XI
+        LDA PYINC,Y  ;AND Y INCREMENT
+        STA YI
+        LDA OBJLEN,X ;AND LINE LENGTH
+        STA LENGTH
+PLOTOB  LDA PLOTX    ;INCREMENT
+        CLC          ;THE X
+        ADC XI       ;COORDINATE
+        STA PLOTX    ;AND SAVE
+        LDA PLOTY    ;INCREMENT
+        CLC          ;THE Y
+        ADC YI       ;COORDINATE
+        STA PLOTY    ;AND SAVE
+        LDA SHAPCT   ;FIRST LINE?
+        CMP #$08
+        BEQ NOPLT1   ;DON'T PLOT IT!
+        JSR PLOTPT   ;PLOT POINT
+NOPLT1  LDA LENGTH   ;MORE LENGTH?
+        BEQ NOOBJ
+        DEC LENGTH   ;DECREASE LENGTH
+        BNE PLOTOB   ;YUP!
+NOOBJ   INC SHAPIX   ;NEXT LINE
+        DEC SHAPCT   ;DONE 8 LINES?
+        BNE DOBLP    ;NOPE!
+ENDOBJ  RTS          ;FINIS!!!
+
+*       SHAPE DATA
+
+PXINC   DB 0,0,1,$FF,1,$FF,1,$FF
+PYINC   DB $FF,1,0,0,$FF,1,1,$FF
+
+*       OBJECT SIDE LENGTHS
+
+OBJLEN  DB 3,2,2,2,2,2,2,0
+        DB 0,40,0,0,0,0,0,0
+        DB 0,40,0,0,0,0,0,0
+        DB 0,40,0,0,0,0,0,0
+        DB 0,40,0,0,0,0,0,0
+        DB 0,40,0,0,0,0,0,0
+        DB 0,40,0,0,0,0,0,0
+        DB 0,40,0,0,0,0,0,0
+        DB 0,40,0,0,0,0,0,0
+
+*       OBJECT SIDE DIRECTIONS
+
+OBJDIR  DB 2,5,3,7,4,2,6,$FF
+        DB 0,0,$FF,0,0,0,0,0
+        DB 0,1,$FF,0,0,0,0,0
+        DB 0,2,$FF,0,0,0,0,0
+        DB 0,3,$FF,0,0,0,0,0
+        DB 0,4,$FF,0,0,0,0,0
+        DB 0,5,$FF,0,0,0,0,0
+        DB 0,6,$FF,0,0,0,0,0
+        DB 0,7,$FF,0,0,0,0,0
+
+:COLRS  DB $00,$55,$AA,$FF
+:BMSK1  DB $3F,$CF,$F3,$FC
+:BMSK2  DB $C0,$30,$0C,$03
+:COLR1  DB $40,$10,$04,$01
+LOTBL   DS 192
+HITBL   DS 192
+        END $2800
