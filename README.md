@@ -1,5 +1,9 @@
 Source code to various Analog Magazine games.
 
+I wanted to have a nice repo of the source to the games I poured over in the pages of ANALOG Magazine.
+
+Most of the code here was found on KSquiggle’s Atari 8-bit Programming Shrine - Many thanks to Kevin Chase (https://ksquiggle.neocities.org)
+
 * Avalanche, by Tommy Bennett, from A.N.A.L.O.G. #21 (August 1984)
 * Bacterion!, by Kyle Peacock and Tom Hudson, from A.N.A.L.O.G. #20 (July 1984)
 * Battle in the B-Ring, by Lew Thomits, Jr., from A.N.A.L.O.G. #19 (June 1984)
