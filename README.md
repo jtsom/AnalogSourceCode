@@ -4,6 +4,7 @@ Source code to various Analog Magazine games.
 * Bacterion!, by Kyle Peacock and Tom Hudson, from A.N.A.L.O.G. #20 (July 1984)
 * Battle in the B-Ring, by Lew Thomits, Jr., from A.N.A.L.O.G. #19 (June 1984)
 * Blast!, by Steven Grimm, from A.N.A.L.O.G. #44 (July 1986)
+* Bonk, by James Hague, from A.N.A.L.O.G. #35 (October 1985)
 * BOPOTRON by Kyle S. Peacock, from A.N.A.L.O.G.
 * Cosmic Defender, by Phill Roey, from A.N.A.L.O.G. #32 (July 1985)
 * Elevator Repairman, by Fred Caprilli, from A.N.A.L.O.G. #34 (September 1985)
