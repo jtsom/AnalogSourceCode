@@ -10,7 +10,6 @@
             "command": "atasm",
             "args": [
                 "${fileBasename}",
-                // Ask msbuild to generate full paths for file names.
                 "-mae",
                 "-o${fileBasenameNoExtension}.obj"
             ],
