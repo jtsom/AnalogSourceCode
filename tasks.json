@@ -5,32 +5,68 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build",
+            "label": "Build - ATASM",
             "type": "shell",
             "command": "atasm",
             "args": [
-                "${fileBasename}",
+                "${relativeFile}",
                 "-mae",
-                "-o${fileBasenameNoExtension}.obj"
+                "-Iincludes",
+                "-IUtility",
+                "-o${fileBasenameNoExtension}.com"
             ],
             "group": "build",
             "presentation": {
                 // Reveal the output only if unrecognized errors occur.
-                "reveal": "silent"
+                "reveal": "always"
             },
             "problemMatcher": {
                 "owner": "atasm",
-                "fileLocation": ["relative", "${workspaceFolder}"],
+                "fileLocation": [
+                    "relative",
+                    "${workspaceFolder}"
+                ],
                 "pattern": [
                     {
-                      "regexp": "^In (.*),\\sline\\s(\\d+)--$",
-                      "file": 1,
-                      "line": 2,
+                        "regexp": "^In (.*),\\sline\\s(\\d+)--$",
+                        "file": 1,
+                        "line": 2,
                     },
                     {
-                      "regexp": "^\\s(Error):\\s(.*)$",
-                      "severity": 1,
-                      "message": 2
+                        "regexp": "^\\s(Error|Warning):\\s(.*)$",
+                        "severity": 1,
+                        "message": 2
+                    }
+                ]
+            }
+        },
+        {
+            "label": "Build - MADS",
+            "type": "shell",
+            "command": "mads",
+            "args": [
+                "${fileBasename}",
+                "-l",
+                "-o:${fileBasenameNoExtension}.com"
+            ],
+            "group": "build",
+            "presentation": {
+                // Reveal the output only if unrecognized errors occur.
+                "reveal": "always"
+            },
+            "problemMatcher": {
+                "owner": "MADS",
+                "fileLocation": [
+                    "relative",
+                    "${workspaceFolder}"
+                ],
+                "pattern": [
+                    {
+                        "regexp": "^(.*)\\s\\((\\d*)\\)\\s(ERROR|WARNING):\\s(.*)$",
+                        "file": 1,
+                        "line": 2,
+                        "severity": 3,
+                        "message": 4,
                     }
                 ]
             }
