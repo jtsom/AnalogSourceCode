@@ -19,6 +19,7 @@ Most of the code here was found on KSquiggle’s Atari 8-bit Programming Shrine 
 * Planetary Defense, by Charles Bachand and Tom Hudson, from A.N.A.L.O.G. #17 (March 1984)
 * Race in Space, by Charles Bachand, from A.N.A.L.O.G. #24 (November 1984)
 * Rocks!, by Douglas Engel, from A.N.A.L.O.G. #54 (May 1987)
+* Roundup by Richard Loken, from A.N.A.L.O.G. #13 (September 1983)
 * SHOOT, by John H. Palevich, from COMPUTE! #16 (September 1981)
 
 
