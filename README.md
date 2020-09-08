@@ -14,6 +14,7 @@ Most of the code here was found on KSquiggle’s Atari 8-bit Programming Shrine 
 * Elevator Repairman, by Fred Caprilli, from A.N.A.L.O.G. #34 (September 1985)
 * Fill ’Er Up, by Tom Hudson, from A.N.A.L.O.G. #10 (March 1983?)
 * Fire Bug, by Kyle Peacock and Tom Hudson, from A.N.A.L.O.G. #23 (October 1984)
+* Incoming! By Conrad Tatge, From A.N.A.L.O.G. #38 (January 1986)
 * Livewire!, by Tom Hudson, from A.N.A.L.O.G. #12 (July 1983)
 * Maze War, by Mark Price, from A.N.A.L.O.G. #36 (November 1985)
 * Planetary Defense, by Charles Bachand and Tom Hudson, from A.N.A.L.O.G. #17 (March 1984)
